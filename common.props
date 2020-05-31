@@ -1,0 +1,16 @@
+<Project>
+  <Import Project="version.props" />
+  <PropertyGroup>
+    <Product>MicroElements.Processing</Product>
+    <Copyright>2020</Copyright>
+    <Authors>micro-elements</Authors>
+    <Description>Provides async processing blocks</Description>
+
+    <PackageTags>processing pipeline dataflow</PackageTags>
+    <PackageProjectUrl>https://github.com/micro-elements/MicroElements.Processing.git</PackageProjectUrl>
+    <PackageLicenseUrl>https://raw.githubusercontent.com/micro-elements/MicroElements.Processing.git/master/LICENSE</PackageLicenseUrl>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/micro-elements/MicroElements.Processing.git</RepositoryUrl>
+    <PackageIconUrl>https://raw.githubusercontent.com/micro-elements/MicroElements/master/image/logo_rounded.png</PackageIconUrl>
+  </PropertyGroup>
+</Project>

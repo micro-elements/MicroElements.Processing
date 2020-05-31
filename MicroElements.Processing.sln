@@ -1,0 +1,68 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29613.14
+MinimumVisualStudioVersion = 15.0.26124.0
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{53C5A5D6-B29A-41B1-90B4-A2F73E370FD4}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MicroElements.Processing", "src\MicroElements.Processing\MicroElements.Processing.csproj", "{D8683BAE-4BBD-4580-BEB4-A1635B7BD65C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{6C7B483A-B883-4C9C-A344-920B23A84B91}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MicroElements.Processing.Tests", "test\MicroElements.Processing.Tests\MicroElements.Processing.Tests.csproj", "{5BE5BB4A-DD4E-4FB9-BA49-03A11283CFDA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{AF1154FF-1FE0-4CCA-8ABD-0DC6CC9A0EE8}"
+	ProjectSection(SolutionItems) = preProject
+		.travis.yml = .travis.yml
+		CHANGELOG.md = CHANGELOG.md
+		common.props = common.props
+		README.md = README.md
+		version.props = version.props
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D8683BAE-4BBD-4580-BEB4-A1635B7BD65C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D8683BAE-4BBD-4580-BEB4-A1635B7BD65C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D8683BAE-4BBD-4580-BEB4-A1635B7BD65C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D8683BAE-4BBD-4580-BEB4-A1635B7BD65C}.Debug|x64.Build.0 = Debug|Any CPU
+		{D8683BAE-4BBD-4580-BEB4-A1635B7BD65C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D8683BAE-4BBD-4580-BEB4-A1635B7BD65C}.Debug|x86.Build.0 = Debug|Any CPU
+		{D8683BAE-4BBD-4580-BEB4-A1635B7BD65C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D8683BAE-4BBD-4580-BEB4-A1635B7BD65C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D8683BAE-4BBD-4580-BEB4-A1635B7BD65C}.Release|x64.ActiveCfg = Release|Any CPU
+		{D8683BAE-4BBD-4580-BEB4-A1635B7BD65C}.Release|x64.Build.0 = Release|Any CPU
+		{D8683BAE-4BBD-4580-BEB4-A1635B7BD65C}.Release|x86.ActiveCfg = Release|Any CPU
+		{D8683BAE-4BBD-4580-BEB4-A1635B7BD65C}.Release|x86.Build.0 = Release|Any CPU
+		{5BE5BB4A-DD4E-4FB9-BA49-03A11283CFDA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5BE5BB4A-DD4E-4FB9-BA49-03A11283CFDA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5BE5BB4A-DD4E-4FB9-BA49-03A11283CFDA}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{5BE5BB4A-DD4E-4FB9-BA49-03A11283CFDA}.Debug|x64.Build.0 = Debug|Any CPU
+		{5BE5BB4A-DD4E-4FB9-BA49-03A11283CFDA}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{5BE5BB4A-DD4E-4FB9-BA49-03A11283CFDA}.Debug|x86.Build.0 = Debug|Any CPU
+		{5BE5BB4A-DD4E-4FB9-BA49-03A11283CFDA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5BE5BB4A-DD4E-4FB9-BA49-03A11283CFDA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5BE5BB4A-DD4E-4FB9-BA49-03A11283CFDA}.Release|x64.ActiveCfg = Release|Any CPU
+		{5BE5BB4A-DD4E-4FB9-BA49-03A11283CFDA}.Release|x64.Build.0 = Release|Any CPU
+		{5BE5BB4A-DD4E-4FB9-BA49-03A11283CFDA}.Release|x86.ActiveCfg = Release|Any CPU
+		{5BE5BB4A-DD4E-4FB9-BA49-03A11283CFDA}.Release|x86.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{D8683BAE-4BBD-4580-BEB4-A1635B7BD65C} = {53C5A5D6-B29A-41B1-90B4-A2F73E370FD4}
+		{5BE5BB4A-DD4E-4FB9-BA49-03A11283CFDA} = {6C7B483A-B883-4C9C-A344-920B23A84B91}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B6896EF1-66ED-430E-A664-8100F7E640AE}
+	EndGlobalSection
+EndGlobal
