@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using MicroElements.Processing.TaskManager;
 
 namespace MicroElements.Processing.Pipelines
 {

@@ -2,24 +2,14 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Threading.Tasks.Dataflow;
 
-namespace MicroElements.Processing.Pipelines
+namespace MicroElements.Processing.TaskManager
 {
-    internal static class PipelineExceptions
-    {
-        public static void PostMany<A>(this ITargetBlock<A> block, IEnumerable<A> items)
-        {
-            foreach (A item in items)
-            {
-                block.Post(item);
-            }
-        }
-    }
-
+    /// <summary>
+    /// Async related extensions.
+    /// </summary>
     public static class TaskExtensions
     {
         /// <summary>
