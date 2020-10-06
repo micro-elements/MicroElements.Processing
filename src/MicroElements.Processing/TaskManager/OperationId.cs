@@ -31,5 +31,11 @@ namespace MicroElements.Processing.TaskManager
 
         /// <inheritdoc />
         public bool Equals(OperationId other) => _value == other._value;
+
+        /// <summary>
+        /// Implicit conversion from string.
+        /// </summary>
+        /// <param name="value">Source string.</param>
+        public static implicit operator OperationId(string value) => new OperationId(value);
     }
 }
