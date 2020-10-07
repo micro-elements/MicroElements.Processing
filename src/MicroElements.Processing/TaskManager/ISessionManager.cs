@@ -1,15 +1,17 @@
 ﻿// Copyright (c) MicroElements. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
 using System.Collections.Generic;
 using System.Threading;
+using MicroElements.Metadata;
 
 namespace MicroElements.Processing.TaskManager
 {
     /// <summary>
     /// SessionManager base interface with no write operations.
     /// </summary>
-    public interface ISessionManager
+    public interface ISessionManager : IMetadataProvider
     {
         /// <summary>
         /// Gets session manager configuration.
@@ -20,6 +22,11 @@ namespace MicroElements.Processing.TaskManager
         /// Gets session manager global lock.
         /// </summary>
         SemaphoreSlim GlobalLock { get; }
+
+        /// <summary>
+        /// Gets session manager services that can be used by Operation managers.
+        /// </summary>
+        IServiceProvider Services { get; }
     }
 
     /// <summary>
@@ -32,9 +39,9 @@ namespace MicroElements.Processing.TaskManager
         /// <summary>
         /// Adds new operation manager.
         /// </summary>
-        /// <param name="sessionId">SessionId.</param>
         /// <param name="operationManager">OperationManager instance.</param>
-        void AddOperationManager(string sessionId, IOperationManager<TSessionState, TOperationState> operationManager);
+        /// <returns>Added OperationManager.</returns>
+        IOperationManager<TSessionState, TOperationState> AddOperationManager(IOperationManager<TSessionState, TOperationState> operationManager);
 
         /// <summary>
         /// Gets OperationManager by its id.

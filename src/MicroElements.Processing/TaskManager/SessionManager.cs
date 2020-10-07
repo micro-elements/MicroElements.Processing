@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Linq;
 using System.Threading;
 using MicroElements.Data.Caching;
@@ -15,30 +17,34 @@ namespace MicroElements.Processing.TaskManager
     /// <typeparam name="TOperationState">Operation state.</typeparam>
     public class SessionManager<TSessionState, TOperationState> : ISessionManager<TSessionState, TOperationState>
     {
-        private readonly ILoggerFactory _loggerProvider;
+        private readonly ILoggerFactory _loggerFactory;
         private readonly ICacheSection<IOperationManager<TSessionState, TOperationState>> _sessionsCache;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SessionManager{TSessionState, TOperationState}"/> class.
         /// </summary>
         /// <param name="configuration">Configuration.</param>
-        /// <param name="loggerProvider">Logger factory.</param>
+        /// <param name="loggerFactory">Logger factory.</param>
         /// <param name="memoryCache">Memory cache for session store.</param>
         public SessionManager(
             ISessionManagerConfiguration configuration,
-            ILoggerFactory loggerProvider,
+            ILoggerFactory loggerFactory,
             IMemoryCache memoryCache)
         {
             Configuration = configuration.AssertArgumentNotNull(nameof(configuration));
+            _loggerFactory = loggerFactory.AssertArgumentNotNull(nameof(loggerFactory));
 
             GlobalLock = new SemaphoreSlim(configuration.MaxConcurrencyLevel);
-
-            _loggerProvider = loggerProvider.AssertArgumentNotNull(nameof(loggerProvider));
 
             _sessionsCache = new CacheManager(
                     memoryCache.AssertArgumentNotNull(nameof(memoryCache)),
                     cacheContext => cacheContext.CacheEntry.AbsoluteExpirationRelativeToNow = configuration.SessionCacheTimeToLive)
                 .GetOrCreateSection($"SessionManager_{Configuration.Id}", CacheSettings<IOperationManager<TSessionState, TOperationState>>.Default);
+
+            ServiceContainer serviceContainer = new ServiceContainer();
+            serviceContainer.AddService(typeof(ILoggerFactory), _loggerFactory);
+            serviceContainer.AddService(typeof(IMemoryCache), memoryCache);
+            Services = serviceContainer;
         }
 
         /// <inheritdoc />
@@ -48,9 +54,16 @@ namespace MicroElements.Processing.TaskManager
         public SemaphoreSlim GlobalLock { get; }
 
         /// <inheritdoc />
-        public void AddOperationManager(string sessionId, IOperationManager<TSessionState, TOperationState> operationManager)
+        public IServiceProvider Services { get; }
+
+        /// <inheritdoc />
+        public IOperationManager<TSessionState, TOperationState> AddOperationManager(IOperationManager<TSessionState, TOperationState> operationManager)
         {
-            _sessionsCache.Set(sessionId, operationManager);
+            if (operationManager.SessionManager != this)
+                throw new ArgumentException("OperationManager.SessionManager should be the same as target SessionManager", nameof(operationManager));
+
+            _sessionsCache.Set(operationManager.Session.Id.Value, operationManager);
+            return operationManager;
         }
 
         /// <inheritdoc />

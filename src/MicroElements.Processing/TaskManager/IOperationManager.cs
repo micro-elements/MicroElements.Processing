@@ -15,6 +15,11 @@ namespace MicroElements.Processing.TaskManager
     public interface IOperationManager<TSessionState, TOperationState>
     {
         /// <summary>
+        /// Gets session manager that owns this operation manager.
+        /// </summary>
+        ISessionManager SessionManager { get; }
+
+        /// <summary>
         /// Gets internal state as session.
         /// </summary>
         ISession<TSessionState, TOperationState> Session { get; }

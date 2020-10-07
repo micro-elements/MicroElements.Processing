@@ -28,6 +28,10 @@ namespace MicroElements.Processing.Pipelines
         Task CompleteAndWait();
     }
 
+    /// <summary>
+    /// Pipeline for type <typeparamref name="T"/>.
+    /// </summary>
+    /// <typeparam name="T">Input pipeline type.</typeparam>
     public class Pipeline<T> : IPipeline<T>
     {
         private readonly List<IDataflowBlock> _blocks = new List<IDataflowBlock>();
@@ -43,6 +47,7 @@ namespace MicroElements.Processing.Pipelines
             _blocks.Add(Input);
         }
 
+        /// <inheritdoc />
         public Task CompleteAndWait()
         {
             Input.Complete();

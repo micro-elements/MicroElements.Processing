@@ -23,6 +23,7 @@ namespace MicroElements.Processing.TaskManager
     public class OperationManager<TSessionState, TOperationState> : IOperationManager<TSessionState, TOperationState>
     {
         private readonly ISessionManager _sessionManager;
+        private readonly ILoggerFactory _loggerFactory;
         private readonly ILogger<OperationManager<TSessionState, TOperationState>> _logger;
         private readonly ConcurrentDictionary<OperationId, IOperation<TOperationState>> _operations = new ConcurrentDictionary<OperationId, IOperation<TOperationState>>();
         private ISession<TSessionState> _session;
@@ -44,20 +45,25 @@ namespace MicroElements.Processing.TaskManager
         /// <param name="sessionId">Session id.</param>
         /// <param name="sessionState">Initial session state.</param>
         /// <param name="sessionManager">Owner session manager.</param>
-        /// <param name="loggerProvider">Logger provider.</param>
+        /// <param name="loggerFactory">Logger factory.</param>
         public OperationManager(
             OperationId sessionId,
             TSessionState sessionState,
             ISessionManager<TSessionState, TOperationState> sessionManager,
-            ILoggerFactory? loggerProvider)
+            ILoggerFactory? loggerFactory = null)
         {
             _sessionManager = sessionManager;
-            _session = TaskManager.Session.Create<TSessionState>(
+            _loggerFactory = loggerFactory ?? (ILoggerFactory)_sessionManager.Services.GetService(typeof(ILoggerFactory)) ?? NullLoggerFactory.Instance;
+            _logger = _loggerFactory.CreateLogger<OperationManager<TSessionState, TOperationState>>();
+
+            _session = TaskManager.Session.Create(
                 id: sessionId,
                 status: OperationStatus.NotStarted,
                 state: sessionState);
-            _logger = loggerProvider?.CreateLogger<OperationManager<TSessionState, TOperationState>>() ?? NullLogger<OperationManager<TSessionState, TOperationState>>.Instance;
         }
+
+        /// <inheritdoc />
+        public ISessionManager SessionManager => _sessionManager;
 
         /// <inheritdoc />
         public ISession<TSessionState, TOperationState> Session => _session.WithOperations(GetOperations());
