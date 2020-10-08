@@ -8,6 +8,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using MicroElements.Functional;
+using MicroElements.Metadata;
 using MicroElements.Processing.Pipelines;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -22,14 +24,17 @@ namespace MicroElements.Processing.TaskManager
     /// <typeparam name="TOperationState">Operation state.</typeparam>
     public class OperationManager<TSessionState, TOperationState> : IOperationManager<TSessionState, TOperationState>
     {
+        // Initializes in ctor
         private readonly ISessionManager _sessionManager;
-        private readonly ILoggerFactory _loggerFactory;
+        private readonly IPropertyContainer _metadata;
         private readonly ILogger<OperationManager<TSessionState, TOperationState>> _logger;
-        private readonly ConcurrentDictionary<OperationId, IOperation<TOperationState>> _operations = new ConcurrentDictionary<OperationId, IOperation<TOperationState>>();
+        private readonly ConcurrentDictionary<OperationId, IOperation<TOperationState>> _operations;
+
+        // Mutates on status change
         private ISession<TSessionState> _session;
 
-        // Filled on start
-        private ExecutionOptions<TSessionState, TOperationState>? _options;
+        // Initializes on StartAll
+        private IExecutionOptions<TSessionState, TOperationState> _options;
         private CancellationTokenSource _cts;
         private Pipeline<IOperation<TOperationState>>? _pipeline;
         private Task<ISession<TSessionState, TOperationState>>? _sessionCompletionTask;
@@ -53,8 +58,10 @@ namespace MicroElements.Processing.TaskManager
             ILoggerFactory? loggerFactory = null)
         {
             _sessionManager = sessionManager;
-            _loggerFactory = loggerFactory ?? (ILoggerFactory)_sessionManager.Services.GetService(typeof(ILoggerFactory)) ?? NullLoggerFactory.Instance;
-            _logger = _loggerFactory.CreateLogger<OperationManager<TSessionState, TOperationState>>();
+            loggerFactory ??= (ILoggerFactory)_sessionManager.Services.GetService(typeof(ILoggerFactory)) ?? NullLoggerFactory.Instance;
+            _logger = loggerFactory.CreateLogger<OperationManager<TSessionState, TOperationState>>();
+            _metadata = new MutablePropertyContainer();
+            _operations = new ConcurrentDictionary<OperationId, IOperation<TOperationState>>();
 
             _session = TaskManager.Session.Create(
                 id: sessionId,
@@ -63,7 +70,13 @@ namespace MicroElements.Processing.TaskManager
         }
 
         /// <inheritdoc />
+        public IPropertyContainer Metadata => _metadata;
+
+        /// <inheritdoc />
         public ISessionManager SessionManager => _sessionManager;
+
+        /// <inheritdoc />
+        public ISession SessionUntyped => _session;
 
         /// <inheritdoc />
         public ISession<TSessionState, TOperationState> Session => _session.WithOperations(GetOperations());
@@ -87,7 +100,7 @@ namespace MicroElements.Processing.TaskManager
         /// <inheritdoc />
         public IOperation<TOperationState> CreateOperation(OperationId operationId, TOperationState state)
         {
-            var operation = Operation.CreateNotStarted(operationId, state);
+            var operation = Operation<TOperationState>.Empty.With(id: operationId, state: state);
             _operations[operationId] = operation;
             return operation;
         }
@@ -116,10 +129,11 @@ namespace MicroElements.Processing.TaskManager
         }
 
         /// <inheritdoc />
-        public Task StartAll(ExecutionOptions<TSessionState, TOperationState> options)
+        public Task StartAll(IExecutionOptions<TSessionState, TOperationState> options)
         {
             if (_options != null)
                 throw new OperationManagerException($"Session {_session.Id} already started");
+            options.Executor.AssertArgumentNotNull(nameof(options.Executor));
 
             _options = options;
             _cts = CreateCancellation(_options);
@@ -153,7 +167,7 @@ namespace MicroElements.Processing.TaskManager
             return Task.CompletedTask;
         }
 
-        private static CancellationTokenSource CreateCancellation(ExecutionOptions<TSessionState, TOperationState> options)
+        private static CancellationTokenSource CreateCancellation(IExecutionOptions<TSessionState, TOperationState> options)
         {
             var timeoutTokenSource = new CancellationTokenSource(options.SessionTimeout);
             var externalCancellationToken = options.CancellationToken;
@@ -178,8 +192,7 @@ namespace MicroElements.Processing.TaskManager
         {
             // Set InProgress
             operation = UpdateOperation(operation.Id, operation
-                .WithStartedAt(DateTime.Now.ToLocalDateTime())
-                .WithStatus(OperationStatus.InProgress));
+                .With(startedAt: DateTime.Now.ToLocalDateTime(), status: OperationStatus.InProgress));
 
             Stopwatch stopwatch = Stopwatch.StartNew();
             _logger.LogInformation($"Operation started.  Id: {operation.Id}.");
@@ -199,7 +212,7 @@ namespace MicroElements.Processing.TaskManager
             catch (Exception e)
             {
                 // Set exception
-                resultOperation = operation.WithException(e);
+                resultOperation = operation.With(exception: e);
             }
             finally
             {
@@ -208,8 +221,7 @@ namespace MicroElements.Processing.TaskManager
 
             // Set Finished
             resultOperation = UpdateOperation(operation.Id, resultOperation
-                .WithFinishedAt(DateTime.Now.ToLocalDateTime())
-                .WithStatus(OperationStatus.Finished));
+                .With(finishedAt: DateTime.Now.ToLocalDateTime(), status: OperationStatus.Finished));
 
             _logger.LogInformation($"Operation finished. Id: {operation.Id}. Elapsed: {stopwatch.Elapsed}.");
 
@@ -218,21 +230,22 @@ namespace MicroElements.Processing.TaskManager
 
         private void OnOperationFinished(IOperation<TOperationState> operation)
         {
+            _options.OnOperationFinished?.Invoke(operation);
         }
 
         private ISession<TSessionState, TOperationState> OnSessionFinished(Task task)
         {
             _session = _session.With(status: OperationStatus.Finished, finishedAt: DateTime.Now.ToLocalDateTime());
 
-            _logger.LogInformation($"Session finished. Elapsed {_session.GetElapsed()}");
+            _logger.LogInformation($"Session finished. Elapsed {_session.GetDuration()}");
 
             var sessionWithOperations = Session;
 
-            if (_options.OnFinished != null)
+            if (_options.OnSessionFinished != null)
             {
                 try
                 {
-                    _options.OnFinished(sessionWithOperations);
+                    _options.OnSessionFinished(sessionWithOperations);
                 }
                 catch (Exception e)
                 {

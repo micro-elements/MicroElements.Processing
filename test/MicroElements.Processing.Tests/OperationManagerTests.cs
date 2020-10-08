@@ -36,9 +36,11 @@ namespace MicroElements.Processing.Tests
                 .Select(i => operationManager.CreateOperation(new OperationId(i.ToString()), new TaskState {Number = i}))
                 .ToArray();
 
-            await operationManager.StartAll(new ExecutionOptions<SessionState, TaskState>(
-                executor: new MultiplyNumber(),
-                maxDegreeOfParallelism: 4));
+            await operationManager.StartAll(new ExecutionOptions<SessionState, TaskState>()
+            {
+                Executor = new MultiplyNumber(), 
+                MaxConcurrencyLevel = 4
+            });
 
             await operationManager.SessionCompletion;
 
@@ -47,6 +49,9 @@ namespace MicroElements.Processing.Tests
 
             var operation = operationManager.GetOperation(new OperationId("2"));
             operation.State.Result.Should().Be(4);
+
+            var metrics = session.GetMetrics();
+            metrics.Should().NotBeNull();
         }
     }
 

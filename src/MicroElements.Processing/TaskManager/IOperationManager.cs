@@ -4,21 +4,33 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using MicroElements.Metadata;
 
 namespace MicroElements.Processing.TaskManager
 {
     /// <summary>
-    /// Represents operation manager.
+    /// Represents operation manager (base interface).
     /// </summary>
-    /// <typeparam name="TSessionState">Session state.</typeparam>
-    /// <typeparam name="TOperationState">Operation state.</typeparam>
-    public interface IOperationManager<TSessionState, TOperationState>
+    public interface IOperationManager : IMetadataProvider
     {
         /// <summary>
         /// Gets session manager that owns this operation manager.
         /// </summary>
         ISessionManager SessionManager { get; }
 
+        /// <summary>
+        /// Gets internal state as session.
+        /// </summary>
+        ISession SessionUntyped { get; }
+    }
+
+    /// <summary>
+    /// Represents operation manager.
+    /// </summary>
+    /// <typeparam name="TSessionState">Session state.</typeparam>
+    /// <typeparam name="TOperationState">Operation state.</typeparam>
+    public interface IOperationManager<TSessionState, TOperationState> : IOperationManager
+    {
         /// <summary>
         /// Gets internal state as session.
         /// </summary>
@@ -71,7 +83,7 @@ namespace MicroElements.Processing.TaskManager
         /// </summary>
         /// <param name="options">Execution options.</param>
         /// <returns>Task.</returns>
-        Task StartAll(ExecutionOptions<TSessionState, TOperationState> options);
+        Task StartAll(IExecutionOptions<TSessionState, TOperationState> options);
 
         /// <summary>
         /// Stops session.

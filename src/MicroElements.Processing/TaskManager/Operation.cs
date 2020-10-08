@@ -12,6 +12,17 @@ namespace MicroElements.Processing.TaskManager
     /// <typeparam name="TOperationState">Operation state.</typeparam>
     public class Operation<TOperationState> : IOperation<TOperationState>
     {
+        /// <summary>
+        /// Empty instance of operation.
+        /// </summary>
+        public static readonly Operation<TOperationState> Empty = new Operation<TOperationState>(
+            id: default,
+            state: default,
+            status: OperationStatus.NotStarted,
+            startedAt: default,
+            finishedAt: default,
+            exception: null);
+
         /// <inheritdoc />
         public OperationId Id { get; }
 

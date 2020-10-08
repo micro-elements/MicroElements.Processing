@@ -1,3 +1,8 @@
+# 0.3.0
+- SessionMetrics extended: AvgMillisecondsPerOperation, OperationsPerMinute, OperationsPerSecond
+- Added IExecutionOptions.OnOperationFinished callback
+- Minor API changes
+
 # 0.2.0
 - Added SessionMetrics
 - Added Services to SessionManager that can be used in OperationManager
