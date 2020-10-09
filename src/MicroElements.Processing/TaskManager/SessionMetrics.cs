@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using MicroElements.Data.Caching;
 using NodaTime;
 
 namespace MicroElements.Processing.TaskManager
@@ -59,6 +58,16 @@ namespace MicroElements.Processing.TaskManager
         /// </summary>
         public double OperationsPerSecond { get; }
 
+        /// <summary>
+        /// Gets session duration.
+        /// </summary>
+        public Duration Duration { get; }
+
+        /// <summary>
+        /// Gets estimated time to finish.
+        /// </summary>
+        public Duration Estimation { get; }
+
         public SessionMetrics(
             int operationsCount,
             int inProgressCount,
@@ -67,7 +76,9 @@ namespace MicroElements.Processing.TaskManager
             int progressInPercents,
             int avgMillisecondsPerOperation,
             double operationsPerMinute,
-            double operationsPerSecond)
+            double operationsPerSecond,
+            Duration duration,
+            Duration estimation)
         {
             OperationsCount = operationsCount;
             InProgressCount = inProgressCount;
@@ -77,6 +88,8 @@ namespace MicroElements.Processing.TaskManager
             AvgMillisecondsPerOperation = avgMillisecondsPerOperation;
             OperationsPerMinute = operationsPerMinute;
             OperationsPerSecond = operationsPerSecond;
+            Duration = duration;
+            Estimation = estimation;
         }
     }
 
@@ -103,14 +116,17 @@ namespace MicroElements.Processing.TaskManager
             int progressInPercents =
                 session.Status == OperationStatus.NotStarted ? 0 :
                 session.Status == OperationStatus.Finished ? 100 :
-                operationsCount > 0 ? finishedCount / operationsCount * 100 : 0;
+                operationsCount > 0 ? (int)(((double)finishedCount / (double)operationsCount) * 100) : 0;
+
+            Duration sessionDuration = session.GetDuration();
+            Duration estimation = Duration.FromDays(1).Minus(Duration.FromSeconds(1));
 
             int avgMillisecondsPerOperation = 0;
             double operationsPerMinute = 0;
             double operationsPerSecond = 0;
+
             if (finishedCount > 0)
             {
-                Duration sessionDuration = session.GetDuration();
                 if (sessionDuration.TotalMilliseconds > 0)
                 {
                     operationsPerMinute = Math.Round(finishedCount / sessionDuration.TotalMinutes, 2);
@@ -121,6 +137,10 @@ namespace MicroElements.Processing.TaskManager
                     .Where(operation => operation.Status == OperationStatus.Finished)
                     .Aggregate(0.0, (ms, operation) => ms + operation.GetDuration().TotalMilliseconds);
                 avgMillisecondsPerOperation = (int)(totalFinishedDuration / finishedCount);
+
+                int notFinished = operationsCount - finishedCount;
+                double estimationTimeInMilliseconds = sessionDuration.TotalMilliseconds * notFinished / finishedCount;
+                estimation = Duration.FromMilliseconds(estimationTimeInMilliseconds);
             }
 
             return new SessionMetrics(
@@ -131,7 +151,9 @@ namespace MicroElements.Processing.TaskManager
                 progressInPercents: progressInPercents,
                 avgMillisecondsPerOperation: avgMillisecondsPerOperation,
                 operationsPerMinute: operationsPerMinute,
-                operationsPerSecond: operationsPerSecond);
+                operationsPerSecond: operationsPerSecond,
+                duration: sessionDuration,
+                estimation: estimation);
         }
     }
 }

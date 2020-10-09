@@ -39,7 +39,14 @@ namespace MicroElements.Processing.Tests
             await operationManager.StartAll(new ExecutionOptions<SessionState, TaskState>()
             {
                 Executor = new MultiplyNumber(), 
-                MaxConcurrencyLevel = 4
+                MaxConcurrencyLevel = 4,
+                OnOperationFinished = operation1 =>
+                {
+                    var managerSession = operationManager.Session;
+                    SessionMetrics sessionMetrics = managerSession.GetMetrics();
+                    int sessionMetricsProgressInPercents = sessionMetrics.ProgressInPercents;
+                }
+
             });
 
             await operationManager.SessionCompletion;

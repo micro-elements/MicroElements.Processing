@@ -1,3 +1,7 @@
+# 0.4.0
+- SessionMetrics: Added Duration and Estimation
+- SessionMetrics: ProgressInPercents fixed
+
 # 0.3.0
 - SessionMetrics extended: AvgMillisecondsPerOperation, OperationsPerMinute, OperationsPerSecond
 - Added IExecutionOptions.OnOperationFinished callback

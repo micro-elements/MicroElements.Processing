@@ -147,6 +147,7 @@ namespace MicroElements.Processing.TaskManager
                 .AddStep(operation => OnOperationFinished(operation));
 
             _session = _session.With(status: OperationStatus.InProgress, startedAt: DateTime.Now.ToLocalDateTime());
+            _logger.LogInformation($"Session started. SessionId: {_session.Id}.");
 
             // Add operations to pipeline
             var operations = GetOperations();
@@ -237,7 +238,7 @@ namespace MicroElements.Processing.TaskManager
         {
             _session = _session.With(status: OperationStatus.Finished, finishedAt: DateTime.Now.ToLocalDateTime());
 
-            _logger.LogInformation($"Session finished. Elapsed {_session.GetDuration()}");
+            _logger.LogInformation($"Session finished. SessionId: {_session.Id}. Elapsed: {_session.GetDuration()}.");
 
             var sessionWithOperations = Session;
 
