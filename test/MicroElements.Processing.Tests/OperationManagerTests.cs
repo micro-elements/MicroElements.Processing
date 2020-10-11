@@ -5,6 +5,7 @@ using FluentAssertions;
 using MicroElements.Functional;
 using MicroElements.Processing.TaskManager;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -20,16 +21,14 @@ namespace MicroElements.Processing.Tests
         [Fact]
         public async Task ExecuteOperations()
         {
-            var sessionManager = new SessionManager<SessionState, TaskState>(
-                new SessionManagerConfiguration(),
-                LoggerFactory, 
-                new MemoryCache(new MemoryCacheOptions()));
+            var configuration = new SessionManagerConfiguration();
+            var sessionStorage = new MemoryCacheStorage<SessionState, TaskState>(configuration, new MemoryCache(new MemoryCacheOptions()));
+            var sessionManager = new SessionManager<SessionState, TaskState>(configuration, LoggerFactory, sessionStorage);
 
             var operationManager = new OperationManager<SessionState, TaskState>(
                 new OperationId("test"),
                 new SessionState(),
-                sessionManager,
-                LoggerFactory);
+                sessionManager);
 
             Enumerable
                 .Range(1, 20)
@@ -40,18 +39,13 @@ namespace MicroElements.Processing.Tests
             {
                 Executor = new MultiplyNumber(), 
                 MaxConcurrencyLevel = 4,
-                OnOperationFinished = operation1 =>
-                {
-                    var managerSession = operationManager.Session;
-                    SessionMetrics sessionMetrics = managerSession.GetMetrics();
-                    int sessionMetricsProgressInPercents = sessionMetrics.ProgressInPercents;
-                }
-
+                OnOperationFinished = OnOperationFinished,
+                OnSessionFinished = OnSessionFinished
             });
 
             await operationManager.SessionCompletion;
 
-            var session = operationManager.Session;
+            var session = operationManager.SessionWithOperations;
             session.Status.Should().Be(OperationStatus.Finished);
 
             var operation = operationManager.GetOperation(new OperationId("2"));
@@ -59,6 +53,17 @@ namespace MicroElements.Processing.Tests
 
             var metrics = session.GetMetrics();
             metrics.Should().NotBeNull();
+        }
+
+        private void OnSessionFinished(ISession<SessionState, TaskState> obj)
+        {
+            Logger.LogInformation("SessionFinished");
+        }
+
+        private void OnOperationFinished(ISession<SessionState> session, IOperation<TaskState> operation)
+        {
+            SessionMetrics sessionMetrics = session.GetMetrics();
+            Logger.LogInformation($"Progress: {sessionMetrics.ProgressInPercents}");
         }
     }
 

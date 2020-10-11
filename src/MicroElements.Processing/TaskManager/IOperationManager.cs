@@ -10,6 +10,7 @@ namespace MicroElements.Processing.TaskManager
 {
     /// <summary>
     /// Represents operation manager (base interface).
+    /// Operation manager manages many operations in parallel.
     /// </summary>
     public interface IOperationManager : IMetadataProvider
     {
@@ -26,15 +27,29 @@ namespace MicroElements.Processing.TaskManager
 
     /// <summary>
     /// Represents operation manager.
+    /// Operation manager manages many operations in parallel.
     /// </summary>
     /// <typeparam name="TSessionState">Session state.</typeparam>
-    /// <typeparam name="TOperationState">Operation state.</typeparam>
-    public interface IOperationManager<TSessionState, TOperationState> : IOperationManager
+    public interface IOperationManager<out TSessionState> : IOperationManager
     {
         /// <summary>
         /// Gets internal state as session.
         /// </summary>
-        ISession<TSessionState, TOperationState> Session { get; }
+        ISession<TSessionState> Session { get; }
+    }
+
+    /// <summary>
+    /// Represents operation manager.
+    /// Operation manager manages many operations in parallel.
+    /// </summary>
+    /// <typeparam name="TSessionState">Session state.</typeparam>
+    /// <typeparam name="TOperationState">Operation state.</typeparam>
+    public interface IOperationManager<TSessionState, TOperationState> : IOperationManager<TSessionState>
+    {
+        /// <summary>
+        /// Gets internal state as session including operations.
+        /// </summary>
+        ISession<TSessionState, TOperationState> SessionWithOperations { get; }
 
         /// <summary>
         /// Gets session completion awaitable task.

@@ -1,11 +1,12 @@
-﻿using System;
+﻿// Copyright (c) MicroElements. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
 using System.Linq;
 using System.Threading;
-using MicroElements.Data.Caching;
 using MicroElements.Functional;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
 namespace MicroElements.Processing.TaskManager
@@ -17,35 +18,34 @@ namespace MicroElements.Processing.TaskManager
     /// <typeparam name="TOperationState">Operation state.</typeparam>
     public class SessionManager<TSessionState, TOperationState> : ISessionManager<TSessionState, TOperationState>
     {
-        private readonly ILoggerFactory _loggerFactory;
-        private readonly ICacheSection<IOperationManager<TSessionState, TOperationState>> _sessionsCache;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="SessionManager{TSessionState, TOperationState}"/> class.
         /// </summary>
         /// <param name="configuration">Configuration.</param>
         /// <param name="loggerFactory">Logger factory.</param>
-        /// <param name="memoryCache">Memory cache for session store.</param>
+        /// <param name="sessionStorage">Session storage.</param>
+        /// <param name="initServices">Initializes <see cref="Services"/> that can be used in operation managers.</param>
         public SessionManager(
             ISessionManagerConfiguration configuration,
             ILoggerFactory loggerFactory,
-            IMemoryCache memoryCache)
+            ISessionStorage<TSessionState, TOperationState>? sessionStorage = null,
+            Action<IServiceContainer>? initServices = null)
         {
             Configuration = configuration.AssertArgumentNotNull(nameof(configuration));
-            _loggerFactory = loggerFactory.AssertArgumentNotNull(nameof(loggerFactory));
+            LoggerFactory = loggerFactory.AssertArgumentNotNull(nameof(loggerFactory));
+            SessionStorage = sessionStorage.AssertArgumentNotNull(nameof(sessionStorage));
 
             GlobalLock = new SemaphoreSlim(configuration.MaxConcurrencyLevel);
 
-            _sessionsCache = new CacheManager(
-                    memoryCache.AssertArgumentNotNull(nameof(memoryCache)),
-                    cacheContext => cacheContext.CacheEntry.AbsoluteExpirationRelativeToNow = configuration.SessionCacheTimeToLive)
-                .GetOrCreateSection($"SessionManager_{Configuration.Id}", CacheSettings<IOperationManager<TSessionState, TOperationState>>.Default);
-
             ServiceContainer serviceContainer = new ServiceContainer();
-            serviceContainer.AddService(typeof(ILoggerFactory), _loggerFactory);
-            serviceContainer.AddService(typeof(IMemoryCache), memoryCache);
+            serviceContainer.AddService(typeof(ILoggerFactory), LoggerFactory);
+            initServices?.Invoke(serviceContainer);
             Services = serviceContainer;
         }
+
+        private ISessionStorage<TSessionState, TOperationState> SessionStorage { get; }
+
+        private ILoggerFactory LoggerFactory { get; }
 
         /// <inheritdoc />
         public ISessionManagerConfiguration Configuration { get; }
@@ -62,24 +62,23 @@ namespace MicroElements.Processing.TaskManager
             if (operationManager.SessionManager != this)
                 throw new ArgumentException("OperationManager.SessionManager should be the same as target SessionManager", nameof(operationManager));
 
-            _sessionsCache.Set(operationManager.Session.Id.Value, operationManager);
+            SessionStorage.Set(operationManager);
+
             return operationManager;
         }
 
         /// <inheritdoc />
         public IOperationManager<TSessionState, TOperationState>? GetOperationManager(string sessionId)
         {
-            return _sessionsCache
-                .Get(sessionId)
-                .GetValueOrDefault();
+            return SessionStorage.Get(sessionId);
         }
 
         /// <inheritdoc />
         public IReadOnlyCollection<ISession<TSessionState, TOperationState>> GetSessions()
         {
             var sessions =
-                _sessionsCache
-                    .Keys
+                SessionStorage
+                    .GetKeys()
                     .Select(GetSession)
                     .Where(session => session != null)
                     .Cast<ISession<TSessionState, TOperationState>>()
@@ -91,10 +90,7 @@ namespace MicroElements.Processing.TaskManager
         /// <inheritdoc />
         public ISession<TSessionState, TOperationState>? GetSession(string sessionId)
         {
-            return _sessionsCache
-                .Get(sessionId)
-                .Map(manager => manager.Session)
-                .GetValueOrDefault();
+            return GetOperationManager(sessionId)?.SessionWithOperations;
         }
 
         /// <inheritdoc />

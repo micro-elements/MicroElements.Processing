@@ -2,7 +2,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using NodaTime;
 
@@ -14,27 +13,27 @@ namespace MicroElements.Processing.TaskManager
     public class SessionMetrics
     {
         /// <summary>
-        /// Operations count.
+        /// Gets operations count.
         /// </summary>
         public int OperationsCount { get; }
 
         /// <summary>
-        /// Count of operations in <see cref="OperationStatus.InProgress"/> status.
+        /// Gets count of operations in <see cref="OperationStatus.InProgress"/> status.
         /// </summary>
         public int InProgressCount { get; }
 
         /// <summary>
-        /// Count of operations in <see cref="OperationStatus.Finished"/> status.
+        /// Gets count of operations in <see cref="OperationStatus.Finished"/> status.
         /// </summary>
         public int FinishedCount { get; }
 
         /// <summary>
-        /// Count of failed operations in <see cref="OperationStatus.Finished"/> status.
+        /// Gets count of failed operations (with <see cref="IOperation.Exception"/>) in <see cref="OperationStatus.Finished"/> status.
         /// </summary>
         public int ErrorCount { get; }
 
         /// <summary>
-        /// Count of success operations in <see cref="OperationStatus.Finished"/> status.
+        /// Gets count of success operations in <see cref="OperationStatus.Finished"/> status.
         /// </summary>
         public int SuccessCount => FinishedCount - ErrorCount;
 
@@ -49,12 +48,12 @@ namespace MicroElements.Processing.TaskManager
         public int AvgMillisecondsPerOperation { get; }
 
         /// <summary>
-        /// Gets operation per minute metric.
+        /// Gets operations per minute metric.
         /// </summary>
         public double OperationsPerMinute { get; }
 
         /// <summary>
-        /// Gets operation per second metric.
+        /// Gets operations per second metric.
         /// </summary>
         public double OperationsPerSecond { get; }
 
@@ -68,6 +67,19 @@ namespace MicroElements.Processing.TaskManager
         /// </summary>
         public Duration Estimation { get; }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SessionMetrics"/> class.
+        /// </summary>
+        /// <param name="operationsCount">Operations count.</param>
+        /// <param name="inProgressCount">Count of operations in <see cref="OperationStatus.InProgress"/> status.</param>
+        /// <param name="finishedCount">Count of finished operations.</param>
+        /// <param name="errorCount">Count of failed operations.</param>
+        /// <param name="progressInPercents">Progress in range [0..100].</param>
+        /// <param name="avgMillisecondsPerOperation">Average milliseconds per operation.</param>
+        /// <param name="operationsPerMinute">Operations per minute metric.</param>
+        /// <param name="operationsPerSecond">Operations per second metric.</param>
+        /// <param name="duration">Session duration.</param>
+        /// <param name="estimation">Estimated time to finish.</param>
         public SessionMetrics(
             int operationsCount,
             int inProgressCount,
@@ -96,18 +108,17 @@ namespace MicroElements.Processing.TaskManager
     /// <summary>
     /// Extension methods for <see cref="ISession{TSessionState}"/>.
     /// </summary>
-    public static class SessionExtensions
+    public static class SessionMetricsExtensions
     {
         /// <summary>
-        /// Gets session metrics.
+        /// Calculates session metrics.
         /// </summary>
         /// <typeparam name="TSessionState">Session state.</typeparam>
-        /// <typeparam name="TOperationState">Operation state.</typeparam>
         /// <param name="session">Source session.</param>
         /// <returns><see cref="SessionMetrics"/> instance.</returns>
-        public static SessionMetrics GetMetrics<TSessionState, TOperationState>(this ISession<TSessionState, TOperationState> session)
+        public static SessionMetrics GetMetrics<TSessionState>(this ISession<TSessionState> session)
         {
-            IReadOnlyCollection<IOperation<TOperationState>> operations = session.Operations;
+            var operations = session.GetOperations();
 
             int operationsCount = operations.Count;
             int inProgressCount = operations.Count(operation => operation.Status == OperationStatus.InProgress);

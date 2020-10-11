@@ -8,7 +8,7 @@ using NodaTime;
 namespace MicroElements.Processing.TaskManager
 {
     /// <summary>
-    /// Represents single untyped operation (task).
+    /// Represents single operation (task, unit of work).
     /// </summary>
     public interface IOperation : IMetadataProvider
     {
@@ -33,6 +33,16 @@ namespace MicroElements.Processing.TaskManager
         LocalDateTime? FinishedAt { get; }
 
         /// <summary>
+        /// Gets operation state type.
+        /// </summary>
+        Type StateType { get; }
+
+        /// <summary>
+        /// Gets operation state as object.
+        /// </summary>
+        object? StateUntyped { get; }
+
+        /// <summary>
         /// Gets exception occured on task execution.
         /// </summary>
         Exception? Exception { get; }
@@ -42,7 +52,7 @@ namespace MicroElements.Processing.TaskManager
     /// Represents single operation with state.
     /// </summary>
     /// <typeparam name="TOperationState">Operation state.</typeparam>
-    public interface IOperation<TOperationState> : IOperation
+    public interface IOperation<out TOperationState> : IOperation
     {
         /// <summary>
         /// Gets operation state.

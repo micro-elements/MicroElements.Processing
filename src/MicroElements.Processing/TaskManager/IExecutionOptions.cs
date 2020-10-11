@@ -47,7 +47,7 @@ namespace MicroElements.Processing.TaskManager
         /// <summary>
         /// Gets action fired on operation finished.
         /// </summary>
-        Action<IOperation<TOperationState>>? OnOperationFinished { get; }
+        Action<ISession<TSessionState>, IOperation<TOperationState>>? OnOperationFinished { get; }
     }
 
     /// <summary>
@@ -73,6 +73,6 @@ namespace MicroElements.Processing.TaskManager
         public Action<ISession<TSessionState, TOperationState>>? OnSessionFinished { get; set; }
 
         /// <inheritdoc />
-        public Action<IOperation<TOperationState>>? OnOperationFinished { get; set; }
+        public Action<ISession<TSessionState>, IOperation<TOperationState>>? OnOperationFinished { get; set; }
     }
 }

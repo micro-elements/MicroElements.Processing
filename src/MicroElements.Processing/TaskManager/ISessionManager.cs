@@ -10,6 +10,7 @@ namespace MicroElements.Processing.TaskManager
 {
     /// <summary>
     /// SessionManager base interface with no write operations.
+    /// Manages many sessions in parallel.
     /// </summary>
     public interface ISessionManager : IMetadataProvider
     {
@@ -24,13 +25,13 @@ namespace MicroElements.Processing.TaskManager
         SemaphoreSlim GlobalLock { get; }
 
         /// <summary>
-        /// Gets session manager services that can be used by Operation managers.
+        /// Gets services that can be used by operation managers.
         /// </summary>
         IServiceProvider Services { get; }
     }
 
     /// <summary>
-    /// SessionManager manages many <see cref="IOperationManager{TSessionState,TOperationState}"/>.
+    /// SessionManager manages many sessions in parallel.
     /// </summary>
     /// <typeparam name="TSessionState">Session state.</typeparam>
     /// <typeparam name="TOperationState">Operation state.</typeparam>

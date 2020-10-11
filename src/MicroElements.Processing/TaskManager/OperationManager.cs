@@ -27,10 +27,10 @@ namespace MicroElements.Processing.TaskManager
         // Initializes in ctor
         private readonly ISessionManager _sessionManager;
         private readonly IPropertyContainer _metadata;
-        private readonly ILogger<OperationManager<TSessionState, TOperationState>> _logger;
+        private readonly ILogger _logger;
         private readonly ConcurrentDictionary<OperationId, IOperation<TOperationState>> _operations;
 
-        // Mutates on status change
+        // Replaces on status change
         private ISession<TSessionState> _session;
 
         // Initializes on StartAll
@@ -39,9 +39,6 @@ namespace MicroElements.Processing.TaskManager
         private Pipeline<IOperation<TOperationState>>? _pipeline;
         private Task<ISession<TSessionState, TOperationState>>? _sessionCompletionTask;
 
-        //TODO: metrics
-        //TODO: progress
-        //TODO: push model
         //TODO: retry
 
         /// <summary>
@@ -50,24 +47,27 @@ namespace MicroElements.Processing.TaskManager
         /// <param name="sessionId">Session id.</param>
         /// <param name="sessionState">Initial session state.</param>
         /// <param name="sessionManager">Owner session manager.</param>
-        /// <param name="loggerFactory">Logger factory.</param>
+        /// <param name="logger">Logger.</param>
         public OperationManager(
             OperationId sessionId,
             TSessionState sessionState,
             ISessionManager<TSessionState, TOperationState> sessionManager,
-            ILoggerFactory? loggerFactory = null)
+            ILogger? logger = null)
         {
-            _sessionManager = sessionManager;
-            loggerFactory ??= (ILoggerFactory)_sessionManager.Services.GetService(typeof(ILoggerFactory)) ?? NullLoggerFactory.Instance;
-            _logger = loggerFactory.CreateLogger<OperationManager<TSessionState, TOperationState>>();
+            _sessionManager = sessionManager.AssertArgumentNotNull(nameof(sessionManager));
+            _logger = logger ?? GetLoggerFactory().CreateLogger(sessionId.Value);
             _metadata = new MutablePropertyContainer();
             _operations = new ConcurrentDictionary<OperationId, IOperation<TOperationState>>();
 
-            _session = TaskManager.Session.Create(
-                id: sessionId,
-                status: OperationStatus.NotStarted,
-                state: sessionState);
+            _session = Operation
+                .CreateNotStarted(sessionId, sessionState)
+                .ToSession(getOperations: GetOperations);
+
+            ILoggerFactory GetLoggerFactory() =>
+                (ILoggerFactory)_sessionManager.Services.GetService(typeof(ILoggerFactory)) ?? NullLoggerFactory.Instance;
         }
+
+        private IEnumerator<IOperation> GetOperationsEnumerator() => GetOperations().GetEnumerator();
 
         /// <inheritdoc />
         public IPropertyContainer Metadata => _metadata;
@@ -76,10 +76,13 @@ namespace MicroElements.Processing.TaskManager
         public ISessionManager SessionManager => _sessionManager;
 
         /// <inheritdoc />
-        public ISession SessionUntyped => _session;
+        ISession IOperationManager.SessionUntyped => _session;
 
         /// <inheritdoc />
-        public ISession<TSessionState, TOperationState> Session => _session.WithOperations(GetOperations());
+        public ISession<TSessionState> Session => _session;
+
+        /// <inheritdoc />
+        public ISession<TSessionState, TOperationState> SessionWithOperations => _session.WithOperations(GetOperations());
 
         /// <inheritdoc />
         public Task<ISession<TSessionState, TOperationState>> SessionCompletion => _sessionCompletionTask ?? throw new OperationManagerException($"Session {_session.Id} is not started.");
@@ -100,7 +103,7 @@ namespace MicroElements.Processing.TaskManager
         /// <inheritdoc />
         public IOperation<TOperationState> CreateOperation(OperationId operationId, TOperationState state)
         {
-            var operation = Operation<TOperationState>.Empty.With(id: operationId, state: state);
+            var operation = Operation.CreateNotStarted(id: operationId, state: state);
             _operations[operationId] = operation;
             return operation;
         }
@@ -191,47 +194,63 @@ namespace MicroElements.Processing.TaskManager
 
         private async Task<IOperation<TOperationState>> ProcessOperation(IOperation<TOperationState> operation)
         {
-            // Set InProgress
-            operation = UpdateOperation(operation.Id, operation
-                .With(startedAt: DateTime.Now.ToLocalDateTime(), status: OperationStatus.InProgress));
-
-            Stopwatch stopwatch = Stopwatch.StartNew();
-            _logger.LogInformation($"Operation started.  Id: {operation.Id}.");
-
-            IOperation<TOperationState> resultOperation;
+            IOperation<TOperationState> resultOperation = operation;
             try
             {
-                // Limit by global lock
-                await _sessionManager.GlobalLock.WaitAsync();
+                // Set InProgress
+                operation = UpdateOperation(operation.Id, operation
+                    .With(startedAt: DateTime.Now.ToLocalDateTime(), status: OperationStatus.InProgress));
 
-                //TODO: Cancellation on operation level?
-                //_cts.Token.ThrowIfCancellationRequested();
+                Stopwatch stopwatch = Stopwatch.StartNew();
+                _logger.LogInformation($"Operation started.  Id: {operation.Id}.");
 
-                // Run action
-                resultOperation = await _options.Executor.ExecuteAsync(_session, operation, _cts.Token);
+                try
+                {
+                    // Limit by global lock
+                    await _sessionManager.GlobalLock.WaitAsync();
+
+                    //TODO: Cancellation on operation level?
+                    //_cts.Token.ThrowIfCancellationRequested();
+
+                    // Run action
+                    resultOperation = await _options.Executor.ExecuteAsync(_session, operation, _cts.Token);
+                }
+                catch (Exception e)
+                {
+                    // Set exception
+                    resultOperation = operation.With(exception: e);
+                }
+                finally
+                {
+                    _sessionManager.GlobalLock.Release();
+                }
+
+                // Set Finished
+                resultOperation = UpdateOperation(operation.Id, resultOperation
+                    .With(finishedAt: DateTime.Now.ToLocalDateTime(), status: OperationStatus.Finished));
+
+                _logger.LogInformation($"Operation finished. Id: {operation.Id}. Elapsed: {stopwatch.Elapsed}.");
             }
-            catch (Exception e)
+            catch (OperationManagerException e)
             {
-                // Set exception
-                resultOperation = operation.With(exception: e);
+                _session.Messages.AddError($"OperationManager error. Operation {operation.Id} will not be processed. Message: {e.Message}");
+                _logger.LogError(e, $"OperationManager error. Operation {operation.Id} will not be processed.");
             }
-            finally
-            {
-                _sessionManager.GlobalLock.Release();
-            }
-
-            // Set Finished
-            resultOperation = UpdateOperation(operation.Id, resultOperation
-                .With(finishedAt: DateTime.Now.ToLocalDateTime(), status: OperationStatus.Finished));
-
-            _logger.LogInformation($"Operation finished. Id: {operation.Id}. Elapsed: {stopwatch.Elapsed}.");
 
             return resultOperation;
         }
 
         private void OnOperationFinished(IOperation<TOperationState> operation)
         {
-            _options.OnOperationFinished?.Invoke(operation);
+            try
+            {
+                _options.OnOperationFinished?.Invoke(_session, operation);
+            }
+            catch (Exception e)
+            {
+                _session.Messages.AddError($"Error in OnOperationFinished callback. Message: {e.Message}");
+                _logger.LogError(e, "Error in OnOperationFinished callback.");
+            }
         }
 
         private ISession<TSessionState, TOperationState> OnSessionFinished(Task task)
@@ -240,7 +259,7 @@ namespace MicroElements.Processing.TaskManager
 
             _logger.LogInformation($"Session finished. SessionId: {_session.Id}. Elapsed: {_session.GetDuration()}.");
 
-            var sessionWithOperations = Session;
+            var sessionWithOperations = SessionWithOperations;
 
             if (_options.OnSessionFinished != null)
             {
@@ -250,7 +269,8 @@ namespace MicroElements.Processing.TaskManager
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError(e, "Error in OnFinished callback.");
+                    _session.Messages.AddError($"Error in OnSessionFinished callback. Message: {e.Message}");
+                    _logger.LogError(e, "Error in OnSessionFinished callback.");
                 }
             }
 

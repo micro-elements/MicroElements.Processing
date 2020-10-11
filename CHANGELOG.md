@@ -1,3 +1,10 @@
+# 0.5.0
+- ISession<TSessionState> has session state and messages but does not evaluates operation list
+- IExecutionOptions.OnOperationFinished now accepts ISession<TSessionState>
+- OperationManager now has property Session of type ISession<TSessionState> to access get session without operations and property SessionWithOperations to get full session with operations.
+- Added ISessionStorage to abstract session storage
+- Minor API changes
+
 # 0.4.0
 - SessionMetrics: Added Duration and Estimation
 - SessionMetrics: ProgressInPercents fixed

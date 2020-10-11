@@ -12,17 +12,6 @@ namespace MicroElements.Processing.TaskManager
     /// <typeparam name="TOperationState">Operation state.</typeparam>
     public class Operation<TOperationState> : IOperation<TOperationState>
     {
-        /// <summary>
-        /// Empty instance of operation.
-        /// </summary>
-        public static readonly Operation<TOperationState> Empty = new Operation<TOperationState>(
-            id: default,
-            state: default,
-            status: OperationStatus.NotStarted,
-            startedAt: default,
-            finishedAt: default,
-            exception: null);
-
         /// <inheritdoc />
         public OperationId Id { get; }
 
@@ -36,10 +25,16 @@ namespace MicroElements.Processing.TaskManager
         public LocalDateTime? FinishedAt { get; }
 
         /// <inheritdoc />
-        public Exception? Exception { get; }
+        public Type StateType => typeof(TOperationState);
+
+        /// <inheritdoc />
+        public object? StateUntyped => State;
 
         /// <inheritdoc />
         public TOperationState State { get; }
+
+        /// <inheritdoc />
+        public Exception? Exception { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Operation{TOperationState}"/> class.
@@ -66,5 +61,34 @@ namespace MicroElements.Processing.TaskManager
             FinishedAt = finishedAt;
             Exception = exception;
         }
+
+        /// <inheritdoc />
+        public override string ToString()
+        {
+            string optionalException = Exception != null ? $", {nameof(Exception)}: {Exception?.Message}" : string.Empty;
+            return $"{nameof(Id)}: {Id}, {nameof(Status)}: {Status}{optionalException}";
+        }
+    }
+
+    /// <summary>
+    /// Static helper methods.
+    /// </summary>
+    public static class Operation
+    {
+        /// <summary>
+        /// Creates new instance of <see cref="IOperation{TOperationState}"/> in <see cref="OperationStatus.NotStarted"/>.
+        /// </summary>
+        /// <typeparam name="TOperationState">Operation state.</typeparam>
+        /// <param name="id">Operation id.</param>
+        /// <param name="state">Initial operation state.</param>
+        /// <returns>Created operation.</returns>
+        public static IOperation<TOperationState> CreateNotStarted<TOperationState>(OperationId id, TOperationState state)
+            => new Operation<TOperationState>(
+            id: id,
+            state: state,
+            status: OperationStatus.NotStarted,
+            startedAt: default,
+            finishedAt: default,
+            exception: null);
     }
 }
