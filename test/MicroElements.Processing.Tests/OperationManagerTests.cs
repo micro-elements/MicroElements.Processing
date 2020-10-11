@@ -79,7 +79,7 @@ namespace MicroElements.Processing.Tests
         public int Result { get; set; }
     }
 
-    public class MultiplyNumber : ITaskExecutor<SessionState, TaskState>
+    public class MultiplyNumber : IOperationExecutor<SessionState, TaskState>
     {
         /// <inheritdoc />
         public async Task<IOperation<TaskState>> ExecuteAsync(ISession<SessionState> session, IOperation<TaskState> operation, CancellationToken cancellation = default)

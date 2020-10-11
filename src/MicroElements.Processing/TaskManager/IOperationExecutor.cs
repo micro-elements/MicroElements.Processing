@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 namespace MicroElements.Processing.TaskManager
 {
     /// <summary>
-    /// Represents task executor.
+    /// Represents operation executor.
     /// </summary>
     /// <typeparam name="TSessionState">Session state.</typeparam>
     /// <typeparam name="TOperationState">Operation state.</typeparam>
-    public interface ITaskExecutor<TSessionState, TOperationState>
+    public interface IOperationExecutor<TSessionState, TOperationState>
     {
         /// <summary>
         /// Executes operation and returns updated operation.
