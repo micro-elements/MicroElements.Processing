@@ -1,7 +1,6 @@
 ﻿// Copyright (c) MicroElements. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using MicroElements.Metadata;
@@ -74,16 +73,9 @@ namespace MicroElements.Processing.TaskManager
         /// </summary>
         /// <param name="operationId">Operation id.</param>
         /// <param name="state">Initial operation state.</param>
+        /// <param name="metadata">Optional metadata.</param>
         /// <returns>Created operation.</returns>
-        IOperation<TOperationState> CreateOperation(OperationId operationId, TOperationState state);
-
-        /// <summary>
-        /// Updates operation.
-        /// </summary>
-        /// <param name="operationId">Operation id.</param>
-        /// <param name="updateState">Update function.</param>
-        /// <returns>Updated operation.</returns>
-        IOperation<TOperationState> UpdateOperation(OperationId operationId, Func<IOperation<TOperationState>, IOperation<TOperationState>> updateState);
+        IOperation<TOperationState> CreateOperation(OperationId operationId, TOperationState state, IPropertyContainer? metadata = null);
 
         /// <summary>
         /// Updates operation.
@@ -94,16 +86,22 @@ namespace MicroElements.Processing.TaskManager
         IOperation<TOperationState> UpdateOperation(OperationId operationId, IOperation<TOperationState> updatedOperation);
 
         /// <summary>
+        /// Deletes operation.
+        /// </summary>
+        /// <param name="operationId">Operation id.</param>
+        /// <returns>Deleted operation if exists.</returns>
+        IOperation<TOperationState>? DeleteOperation(OperationId operationId);
+
+        /// <summary>
         /// Starts all operations (does not waits completion).
         /// </summary>
         /// <param name="options">Execution options.</param>
         /// <returns>Task.</returns>
-        Task StartAll(IExecutionOptions<TSessionState, TOperationState> options);
+        Task Start(IExecutionOptions<TSessionState, TOperationState> options);
 
         /// <summary>
         /// Stops session.
         /// </summary>
-        /// <returns>Task.</returns>
-        Task StopAll();
+        void Stop();
     }
 }

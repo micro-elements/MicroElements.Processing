@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
+using MicroElements.Metadata;
 using NodaTime;
 
 namespace MicroElements.Processing.TaskManager
@@ -12,6 +13,9 @@ namespace MicroElements.Processing.TaskManager
     /// <typeparam name="TOperationState">Operation state.</typeparam>
     public class Operation<TOperationState> : IOperation<TOperationState>
     {
+        /// <inheritdoc />
+        public IPropertyContainer Metadata { get; }
+
         /// <inheritdoc />
         public OperationId Id { get; }
 
@@ -45,13 +49,15 @@ namespace MicroElements.Processing.TaskManager
         /// <param name="startedAt">Date and time of start.</param>
         /// <param name="finishedAt">Date and time of finish.</param>
         /// <param name="exception">Exception occured on task execution.</param>
+        /// <param name="metadata">Optional metadata.</param>
         public Operation(
             OperationId id,
             TOperationState state,
             OperationStatus status,
             LocalDateTime? startedAt,
             LocalDateTime? finishedAt,
-            Exception? exception)
+            Exception? exception,
+            IPropertyContainer? metadata)
         {
             Id = id;
             State = state;
@@ -60,6 +66,9 @@ namespace MicroElements.Processing.TaskManager
             StartedAt = startedAt;
             FinishedAt = finishedAt;
             Exception = exception;
+
+            // immutable metadata
+            Metadata = new PropertyContainer(metadata);
         }
 
         /// <inheritdoc />
@@ -81,14 +90,16 @@ namespace MicroElements.Processing.TaskManager
         /// <typeparam name="TOperationState">Operation state.</typeparam>
         /// <param name="id">Operation id.</param>
         /// <param name="state">Initial operation state.</param>
+        /// <param name="metadata">Optional metadata.</param>
         /// <returns>Created operation.</returns>
-        public static IOperation<TOperationState> CreateNotStarted<TOperationState>(OperationId id, TOperationState state)
+        public static IOperation<TOperationState> CreateNotStarted<TOperationState>(OperationId id, TOperationState state, IPropertyContainer? metadata = null)
             => new Operation<TOperationState>(
             id: id,
             state: state,
             status: OperationStatus.NotStarted,
             startedAt: default,
             finishedAt: default,
-            exception: null);
+            exception: null,
+            metadata: metadata);
     }
 }

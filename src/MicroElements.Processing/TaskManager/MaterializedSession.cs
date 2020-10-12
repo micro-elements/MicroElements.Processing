@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using MicroElements.Functional;
+using MicroElements.Metadata;
 using NodaTime;
 
 namespace MicroElements.Processing.TaskManager
@@ -15,6 +16,9 @@ namespace MicroElements.Processing.TaskManager
     /// <typeparam name="TOperationState">Operation state.</typeparam>
     public class MaterializedSession<TSessionState, TOperationState> : ISession<TSessionState, TOperationState>
     {
+        /// <inheritdoc />
+        public IPropertyContainer Metadata => Operation.Metadata;
+
         /// <inheritdoc />
         public OperationId Id => Operation.Id;
 

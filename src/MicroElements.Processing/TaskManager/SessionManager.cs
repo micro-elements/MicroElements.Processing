@@ -7,7 +7,10 @@ using System.ComponentModel.Design;
 using System.Linq;
 using System.Threading;
 using MicroElements.Functional;
+using MicroElements.Metadata;
 using Microsoft.Extensions.Logging;
+
+#pragma warning disable SA1202 // Elements should be ordered by access
 
 namespace MicroElements.Processing.TaskManager
 {
@@ -25,27 +28,34 @@ namespace MicroElements.Processing.TaskManager
         /// <param name="loggerFactory">Logger factory.</param>
         /// <param name="sessionStorage">Session storage.</param>
         /// <param name="initServices">Initializes <see cref="Services"/> that can be used in operation managers.</param>
+        /// <param name="metadata">Optional metadata.</param>
         public SessionManager(
             ISessionManagerConfiguration configuration,
             ILoggerFactory loggerFactory,
             ISessionStorage<TSessionState, TOperationState>? sessionStorage = null,
-            Action<IServiceContainer>? initServices = null)
+            Action<IServiceContainer>? initServices = null,
+            IPropertyContainer? metadata = null)
         {
             Configuration = configuration.AssertArgumentNotNull(nameof(configuration));
             LoggerFactory = loggerFactory.AssertArgumentNotNull(nameof(loggerFactory));
             SessionStorage = sessionStorage.AssertArgumentNotNull(nameof(sessionStorage));
 
-            GlobalLock = new SemaphoreSlim(configuration.MaxConcurrencyLevel);
+            Metadata = new MutablePropertyContainer(metadata);
 
             ServiceContainer serviceContainer = new ServiceContainer();
             serviceContainer.AddService(typeof(ILoggerFactory), LoggerFactory);
             initServices?.Invoke(serviceContainer);
             Services = serviceContainer;
+
+            GlobalLock = new SemaphoreSlim(configuration.MaxConcurrencyLevel);
         }
 
         private ISessionStorage<TSessionState, TOperationState> SessionStorage { get; }
 
         private ILoggerFactory LoggerFactory { get; }
+
+        /// <inheritdoc />
+        public IPropertyContainer Metadata { get; }
 
         /// <inheritdoc />
         public ISessionManagerConfiguration Configuration { get; }
@@ -96,7 +106,7 @@ namespace MicroElements.Processing.TaskManager
         /// <inheritdoc />
         public void DeleteSession(string sessionId)
         {
-            GetOperationManager(sessionId)?.StopAll();
+            GetOperationManager(sessionId)?.Stop();
         }
     }
 }

@@ -3,6 +3,7 @@
 
 using System;
 using MicroElements.Functional;
+using MicroElements.Metadata;
 using NodaTime;
 using NodaTime.Extensions;
 
@@ -24,6 +25,7 @@ namespace MicroElements.Processing.TaskManager
         /// <param name="startedAt">New startedAt.</param>
         /// <param name="finishedAt">New finishedAt.</param>
         /// <param name="exception">New exception.</param>
+        /// <param name="metadata">New metadata.</param>
         /// <returns>New instance of operation with changed properties.</returns>
         public static Operation<TOperationState> With<TOperationState>(
             this IOperation<TOperationState> operation,
@@ -32,7 +34,8 @@ namespace MicroElements.Processing.TaskManager
             TOperationState state = default,
             LocalDateTime? startedAt = default,
             LocalDateTime? finishedAt = default,
-            Exception? exception = null)
+            Exception? exception = null,
+            IPropertyContainer? metadata = null)
         {
             return new Operation<TOperationState>
             (
@@ -41,7 +44,8 @@ namespace MicroElements.Processing.TaskManager
                 status: status ?? operation.Status,
                 startedAt: startedAt ?? operation.StartedAt,
                 finishedAt: finishedAt ?? operation.FinishedAt,
-                exception: exception ?? operation.Exception
+                exception: exception ?? operation.Exception,
+                metadata: metadata ?? operation.Metadata
             );
         }
 

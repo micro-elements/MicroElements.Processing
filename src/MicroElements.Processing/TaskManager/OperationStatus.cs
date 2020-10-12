@@ -20,9 +20,8 @@ namespace MicroElements.Processing.TaskManager
 
         /// <summary>
         /// Operation if finished.
+        /// It can be Success or Failed.
         /// </summary>
         Finished,
-
-        //TODO: Failed, //можно обойтись. Успех или неудача - это трактовка результата
     }
 }

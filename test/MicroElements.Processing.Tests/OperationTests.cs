@@ -1,4 +1,5 @@
 using FluentAssertions;
+using MicroElements.Metadata;
 using MicroElements.Processing.TaskManager;
 using Xunit;
 
@@ -33,6 +34,18 @@ namespace MicroElements.Processing.Tests
             IOperation<Base> operation2 = Operation.CreateNotStarted("2", new Derived("a", "b"));
 
             operation2.State.A.Should().Be(operation1.State.A);
+        }
+
+        [Fact]
+        public void operation_with_metadata()
+        {
+            IOperation<int> operation = Operation.CreateNotStarted("1", 1,
+                metadata: new MutablePropertyContainer().WithValue("AttachedProperty", "Value"));
+
+            operation.GetMetadata<string>("AttachedProperty").Should().Be("Value");
+
+            var updated = operation.With(status: OperationStatus.InProgress);
+            updated.GetMetadata<string>("AttachedProperty").Should().Be("Value");
         }
     }
 }

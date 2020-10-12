@@ -26,7 +26,6 @@ namespace MicroElements.Processing.TaskManager
     {
         // Initializes in ctor
         private readonly ISessionManager _sessionManager;
-        private readonly IPropertyContainer _metadata;
         private readonly ILogger _logger;
         private readonly ConcurrentDictionary<OperationId, IOperation<TOperationState>> _operations;
 
@@ -34,8 +33,8 @@ namespace MicroElements.Processing.TaskManager
         private ISession<TSessionState> _session;
 
         // Initializes on StartAll
-        private IExecutionOptions<TSessionState, TOperationState> _options;
-        private CancellationTokenSource _cts;
+        private IExecutionOptions<TSessionState, TOperationState>? _options;
+        private CancellationTokenSource? _cts;
         private Pipeline<IOperation<TOperationState>>? _pipeline;
         private Task<ISession<TSessionState, TOperationState>>? _sessionCompletionTask;
 
@@ -48,29 +47,28 @@ namespace MicroElements.Processing.TaskManager
         /// <param name="sessionState">Initial session state.</param>
         /// <param name="sessionManager">Owner session manager.</param>
         /// <param name="logger">Logger.</param>
+        /// <param name="metadata">Optional metadata.</param>
         public OperationManager(
             OperationId sessionId,
             TSessionState sessionState,
             ISessionManager<TSessionState, TOperationState> sessionManager,
-            ILogger? logger = null)
+            ILogger? logger = null,
+            IPropertyContainer? metadata = null)
         {
             _sessionManager = sessionManager.AssertArgumentNotNull(nameof(sessionManager));
             _logger = logger ?? GetLoggerFactory().CreateLogger(sessionId.Value);
-            _metadata = new MutablePropertyContainer();
             _operations = new ConcurrentDictionary<OperationId, IOperation<TOperationState>>();
 
             _session = Operation
-                .CreateNotStarted(sessionId, sessionState)
+                .CreateNotStarted(sessionId, sessionState, metadata)
                 .ToSession(getOperations: GetOperations);
 
             ILoggerFactory GetLoggerFactory() =>
                 (ILoggerFactory)_sessionManager.Services.GetService(typeof(ILoggerFactory)) ?? NullLoggerFactory.Instance;
         }
 
-        private IEnumerator<IOperation> GetOperationsEnumerator() => GetOperations().GetEnumerator();
-
         /// <inheritdoc />
-        public IPropertyContainer Metadata => _metadata;
+        public IPropertyContainer Metadata => _session.Metadata;
 
         /// <inheritdoc />
         public ISessionManager SessionManager => _sessionManager;
@@ -101,21 +99,11 @@ namespace MicroElements.Processing.TaskManager
         }
 
         /// <inheritdoc />
-        public IOperation<TOperationState> CreateOperation(OperationId operationId, TOperationState state)
+        public IOperation<TOperationState> CreateOperation(OperationId operationId, TOperationState state, IPropertyContainer? metadata = null)
         {
-            var operation = Operation.CreateNotStarted(id: operationId, state: state);
+            var operation = Operation.CreateNotStarted(id: operationId, state: state, metadata: metadata);
             _operations[operationId] = operation;
             return operation;
-        }
-
-        /// <inheritdoc />
-        public IOperation<TOperationState> UpdateOperation(OperationId operationId, Func<IOperation<TOperationState>, IOperation<TOperationState>> updateState)
-        {
-            IOperation<TOperationState>? operation = GetOperationOrThrow(operationId);
-
-            var updated = updateState(operation);
-
-            return UpdateOperation(operationId, updated);
         }
 
         /// <inheritdoc />
@@ -132,7 +120,14 @@ namespace MicroElements.Processing.TaskManager
         }
 
         /// <inheritdoc />
-        public Task StartAll(IExecutionOptions<TSessionState, TOperationState> options)
+        public IOperation<TOperationState>? DeleteOperation(OperationId operationId)
+        {
+            _operations.TryRemove(operationId, out var deleted);
+            return deleted;
+        }
+
+        /// <inheritdoc />
+        public Task Start(IExecutionOptions<TSessionState, TOperationState> options)
         {
             if (_options != null)
                 throw new OperationManagerException($"Session {_session.Id} already started");
@@ -165,10 +160,9 @@ namespace MicroElements.Processing.TaskManager
         }
 
         /// <inheritdoc />
-        public Task StopAll()
+        public void Stop()
         {
             _cts?.Cancel();
-            return Task.CompletedTask;
         }
 
         private static CancellationTokenSource CreateCancellation(IExecutionOptions<TSessionState, TOperationState> options)
@@ -244,7 +238,10 @@ namespace MicroElements.Processing.TaskManager
         {
             try
             {
-                _options.OnOperationFinished?.Invoke(_session, operation);
+                if (operation.Status == OperationStatus.Finished)
+                {
+                    _options.OnOperationFinished?.Invoke(_session, operation);
+                }
             }
             catch (Exception e)
             {
