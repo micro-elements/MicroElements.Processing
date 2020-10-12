@@ -156,7 +156,7 @@ namespace MicroElements.Processing.Tests
 
         private IOperationManager<SessionState, TaskState> CreateOperationManager()
         {
-            var configuration = new SessionManagerConfiguration();
+            var configuration = new SessionManagerConfiguration() {MaxConcurrencyLevel = 4};
             var sessionStorage =
                 new MemoryCacheStorage<SessionState, TaskState>(configuration, new MemoryCache(new MemoryCacheOptions()));
             var sessionManager = new SessionManager<SessionState, TaskState>(configuration, LoggerFactory, sessionStorage);

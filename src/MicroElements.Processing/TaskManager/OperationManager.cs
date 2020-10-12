@@ -254,7 +254,9 @@ namespace MicroElements.Processing.TaskManager
         {
             _session = _session.With(status: OperationStatus.Finished, finishedAt: DateTime.Now.ToLocalDateTime());
 
-            _logger.LogInformation($"Session finished. SessionId: {_session.Id}. Elapsed: {_session.GetDuration()}.");
+            string reason = _cts.IsCancellationRequested ? "(cancelled)" : string.Empty;
+
+            _logger.LogInformation($"Session finished {reason}. SessionId: {_session.Id}. Elapsed: {_session.GetDuration()}.");
 
             var sessionWithOperations = SessionWithOperations;
 
