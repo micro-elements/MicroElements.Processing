@@ -30,7 +30,8 @@ namespace MicroElements.Processing.TaskManager
             return new LazySession<TSessionState>(
                 sessionOperation: operation,
                 getOperations: getOperations,
-                messages: messages ?? new ConcurrentMessageList<Message>());
+                messages: messages ?? new ConcurrentMessageList<Message>(),
+                executionOptions: null);
         }
 
         /// <summary>
@@ -44,6 +45,7 @@ namespace MicroElements.Processing.TaskManager
         /// <param name="startedAt">New startedAt.</param>
         /// <param name="finishedAt">New finishedAt.</param>
         /// <param name="exception">Exception.</param>
+        /// <param name="executionOptions">Session execution options.</param>
         /// <returns>New instance of session.</returns>
         public static ISession<TSessionState> With<TSessionState>(
             this ISession<TSessionState> source,
@@ -52,7 +54,8 @@ namespace MicroElements.Processing.TaskManager
             OperationStatus? status = null,
             LocalDateTime? startedAt = null,
             LocalDateTime? finishedAt = null,
-            Exception? exception = null)
+            Exception? exception = null,
+            IExecutionOptions? executionOptions = null)
         {
             var sessionOperation = source.Operation.With(
                     id: id,
@@ -65,7 +68,8 @@ namespace MicroElements.Processing.TaskManager
             return new LazySession<TSessionState>(
                 sessionOperation: sessionOperation,
                 messages: source.Messages,
-                getOperations: source.GetOperations);
+                getOperations: source.GetOperations,
+                executionOptions: executionOptions ?? source.ExecutionOptions);
         }
 
         /// <summary>
@@ -85,7 +89,8 @@ namespace MicroElements.Processing.TaskManager
             return new MaterializedSession<TSessionState, TOperationState>(
                 sessionOperation: source.Operation,
                 messages: source.Messages,
-                operations: operations);
+                operations: operations,
+                executionOptions: source.ExecutionOptions);
         }
     }
 }

@@ -23,6 +23,21 @@ namespace MicroElements.Processing.TaskManager
         Task<IOperation<TOperationState>> ExecuteAsync(
             ISession<TSessionState> session,
             IOperation<TOperationState> operation,
-            CancellationToken cancellation = default);
+            CancellationToken cancellation);
+    }
+
+    /// <summary>
+    /// Represents operation executor.
+    /// </summary>
+    /// <typeparam name="TSessionState">Session state.</typeparam>
+    /// <typeparam name="TOperationState">Operation state.</typeparam>
+    public interface IOperationExecutorSafe<TSessionState, TOperationState>
+    {
+        /// <summary>
+        /// Executes operation and returns updated operation.
+        /// </summary>
+        /// <param name="context">Operation execution context.</param>
+        /// <returns>Updated operation.</returns>
+        Task ExecuteAsync(OperationExecutionContext<TSessionState, TOperationState> context);
     }
 }

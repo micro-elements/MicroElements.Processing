@@ -192,7 +192,11 @@ namespace MicroElements.Processing.TaskManager
                 })
                 .AddStep(operation => OnOperationFinished(operation));
 
-            _session = _session.With(status: OperationStatus.InProgress, startedAt: DateTime.Now.ToLocalDateTime());
+            _session = _session.With(
+                status: OperationStatus.InProgress,
+                startedAt: DateTime.Now.ToLocalDateTime(),
+                executionOptions: options);
+
             _logger.LogInformation($"Session started. SessionId: {_session.Id}.");
 
             // Add operations to pipeline
@@ -238,8 +242,10 @@ namespace MicroElements.Processing.TaskManager
             try
             {
                 // Set InProgress
-                operation = UpdateOperation(operation.Id, operation
-                    .With(startedAt: DateTime.Now.ToLocalDateTime(), status: OperationStatus.InProgress));
+                operation = operation.With(
+                    startedAt: DateTime.Now.ToLocalDateTime(),
+                    status: OperationStatus.InProgress);
+                operation = UpdateOperation(operation.Id, operation);
 
                 Stopwatch stopwatch = Stopwatch.StartNew();
                 _logger.LogInformation($"Operation started.  Id: {operation.Id}.");
@@ -247,13 +253,14 @@ namespace MicroElements.Processing.TaskManager
                 try
                 {
                     // Limit by global lock
-                    await _sessionManager.GlobalLock.WaitAsync();
-
-                    //TODO: Cancellation on operation level?
-                    //_cts.Token.ThrowIfCancellationRequested();
+                    await _sessionManager.GlobalLock.WaitAsync(_cts.Token);
 
                     // Run action
                     resultOperation = await _options.Executor.ExecuteAsync(_session, operation, _cts.Token);
+
+                    //TODO: protect managed state of operation (startedAt, status, etc...)
+                    //var context = new OperationExecutionContext<TSessionState, TOperationState>(_session, operation, _cts.Token);
+                    //resultOperation = operation.With(state: context.NewState);
                 }
                 catch (Exception e)
                 {
@@ -266,8 +273,10 @@ namespace MicroElements.Processing.TaskManager
                 }
 
                 // Set Finished
-                resultOperation = UpdateOperation(operation.Id, resultOperation
-                    .With(finishedAt: DateTime.Now.ToLocalDateTime(), status: OperationStatus.Finished));
+                resultOperation = resultOperation.With(
+                    finishedAt: DateTime.Now.ToLocalDateTime(),
+                    status: OperationStatus.Finished);
+                resultOperation = UpdateOperation(operation.Id, resultOperation);
 
                 _logger.LogInformation($"Operation finished. Id: {operation.Id}. Elapsed: {stopwatch.Elapsed}.");
             }

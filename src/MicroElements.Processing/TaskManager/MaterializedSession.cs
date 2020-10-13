@@ -53,6 +53,9 @@ namespace MicroElements.Processing.TaskManager
         public Func<IReadOnlyCollection<IOperation>> GetOperations { get; }
 
         /// <inheritdoc />
+        public IExecutionOptions? ExecutionOptions { get; }
+
+        /// <inheritdoc />
         public IReadOnlyCollection<IOperation<TOperationState>> Operations { get; }
 
         /// <summary>
@@ -61,15 +64,18 @@ namespace MicroElements.Processing.TaskManager
         /// <param name="sessionOperation">Session state.</param>
         /// <param name="messages">Messages.</param>
         /// <param name="operations">Operations.</param>
+        /// <param name="executionOptions">Session execution options.</param>
         public MaterializedSession(
             IOperation<TSessionState> sessionOperation,
             IMutableMessageList<Message> messages,
-            IReadOnlyCollection<IOperation<TOperationState>> operations)
+            IReadOnlyCollection<IOperation<TOperationState>> operations,
+            IExecutionOptions? executionOptions)
         {
             Operation = sessionOperation.AssertArgumentNotNull(nameof(sessionOperation));
             Messages = messages.AssertArgumentNotNull(nameof(messages));
             Operations = operations.AssertArgumentNotNull(nameof(operations));
             GetOperations = () => Operations;
+            ExecutionOptions = executionOptions;
         }
     }
 }

@@ -52,20 +52,26 @@ namespace MicroElements.Processing.TaskManager
         /// <inheritdoc />
         public Func<IReadOnlyCollection<IOperation>> GetOperations { get; }
 
+        /// <inheritdoc />
+        public IExecutionOptions? ExecutionOptions { get; }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="LazySession{TSessionState}"/> class.
         /// </summary>
         /// <param name="sessionOperation">Operation that holds operation part of session.</param>
         /// <param name="messages">Optional messages.</param>
         /// <param name="getOperations">Optional lazy operations getter.</param>
+        /// <param name="executionOptions">Session execution options.</param>
         public LazySession(
             IOperation<TSessionState> sessionOperation,
             IMutableMessageList<Message> messages,
-            Func<IReadOnlyCollection<IOperation>> getOperations)
+            Func<IReadOnlyCollection<IOperation>> getOperations,
+            IExecutionOptions? executionOptions)
         {
             Operation = sessionOperation.AssertArgumentNotNull(nameof(sessionOperation));
             Messages = messages.AssertArgumentNotNull(nameof(messages));
             GetOperations = getOperations.AssertArgumentNotNull(nameof(getOperations));
+            ExecutionOptions = executionOptions;
         }
     }
 }

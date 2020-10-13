@@ -1,3 +1,8 @@
+# 0.6.0
+- IOperationManager: Added UpdateSession and new UpdateOperation
+- ISession: Added ExecutionOptions
+- SessionMetrics: Added MaxConcurrencyLevel and SpeedupRatio
+
 # 0.5.0
 - ISession<TSessionState> has session state and messages but does not evaluates operation list
 - IExecutionOptions.OnOperationFinished now accepts ISession<TSessionState>

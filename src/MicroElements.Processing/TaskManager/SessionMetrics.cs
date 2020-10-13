@@ -68,6 +68,16 @@ namespace MicroElements.Processing.TaskManager
         public Duration Estimation { get; }
 
         /// <summary>
+        /// Gets maximum concurrency level for session.
+        /// </summary>
+        public int MaxConcurrencyLevel { get; }
+
+        /// <summary>
+        /// Gets Speedup Ratio. Evaluates as total time of finished operations divided by total session duration.
+        /// </summary>
+        public double SpeedupRatio { get; }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="SessionMetrics"/> class.
         /// </summary>
         /// <param name="operationsCount">Operations count.</param>
@@ -80,6 +90,8 @@ namespace MicroElements.Processing.TaskManager
         /// <param name="operationsPerSecond">Operations per second metric.</param>
         /// <param name="duration">Session duration.</param>
         /// <param name="estimation">Estimated time to finish.</param>
+        /// <param name="maxConcurrencyLevel">Maximum concurrency level for session.</param>
+        /// <param name="speedupRatio">Speedup Ratio.</param>
         public SessionMetrics(
             int operationsCount,
             int inProgressCount,
@@ -90,7 +102,9 @@ namespace MicroElements.Processing.TaskManager
             double operationsPerMinute,
             double operationsPerSecond,
             Duration duration,
-            Duration estimation)
+            Duration estimation,
+            int maxConcurrencyLevel,
+            double speedupRatio)
         {
             OperationsCount = operationsCount;
             InProgressCount = inProgressCount;
@@ -102,6 +116,8 @@ namespace MicroElements.Processing.TaskManager
             OperationsPerSecond = operationsPerSecond;
             Duration = duration;
             Estimation = estimation;
+            MaxConcurrencyLevel = maxConcurrencyLevel;
+            SpeedupRatio = speedupRatio;
         }
     }
 
@@ -124,6 +140,8 @@ namespace MicroElements.Processing.TaskManager
             int inProgressCount = operations.Count(operation => operation.Status == OperationStatus.InProgress);
             int finishedCount = operations.Count(operation => operation.Status == OperationStatus.Finished);
             int errorCount = operations.Count(operation => operation.Exception != null);
+            int notFinished = operationsCount - finishedCount;
+
             int progressInPercents =
                 session.Status == OperationStatus.NotStarted ? 0 :
                 session.Status == OperationStatus.Finished ? 100 :
@@ -135,6 +153,9 @@ namespace MicroElements.Processing.TaskManager
             int avgMillisecondsPerOperation = 0;
             double operationsPerMinute = 0;
             double operationsPerSecond = 0;
+
+            int concurrencyLevel = 0;
+            double speedupRatio = 0;
 
             if (finishedCount > 0)
             {
@@ -149,9 +170,14 @@ namespace MicroElements.Processing.TaskManager
                     .Aggregate(0.0, (ms, operation) => ms + operation.GetDuration().TotalMilliseconds);
                 avgMillisecondsPerOperation = (int)(totalFinishedDuration / finishedCount);
 
-                int notFinished = operationsCount - finishedCount;
                 double estimationTimeInMilliseconds = sessionDuration.TotalMilliseconds * notFinished / finishedCount;
                 estimation = Duration.FromMilliseconds(estimationTimeInMilliseconds);
+
+                if (session.ExecutionOptions != null)
+                {
+                    concurrencyLevel = session.ExecutionOptions.MaxConcurrencyLevel;
+                }
+                speedupRatio = Math.Round(totalFinishedDuration / sessionDuration.TotalMilliseconds, 2);
             }
 
             return new SessionMetrics(
@@ -164,7 +190,9 @@ namespace MicroElements.Processing.TaskManager
                 operationsPerMinute: operationsPerMinute,
                 operationsPerSecond: operationsPerSecond,
                 duration: sessionDuration,
-                estimation: estimation);
+                estimation: estimation,
+                maxConcurrencyLevel: concurrencyLevel,
+                speedupRatio: speedupRatio);
         }
     }
 }

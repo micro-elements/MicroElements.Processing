@@ -21,6 +21,11 @@ namespace MicroElements.Processing.TaskManager
         /// Gets operations list in lazy manner because this is very expensive.
         /// </summary>
         Func<IReadOnlyCollection<IOperation>> GetOperations { get; }
+
+        /// <summary>
+        /// Gets session execution options.
+        /// </summary>
+        IExecutionOptions? ExecutionOptions { get; }
     }
 
     /// <summary>
