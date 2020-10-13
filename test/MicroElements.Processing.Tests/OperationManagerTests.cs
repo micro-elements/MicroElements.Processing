@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -68,6 +69,14 @@ namespace MicroElements.Processing.Tests
             updated.Id.Should().Be(new OperationId("1"));
             updated.State.Result.Should().Be(2);
             updated.Status.Should().Be(OperationStatus.Finished);
+        }
+
+        [Fact]
+        public void update_operation_should_fail()
+        {
+            var operationManager = CreateOperationManager();
+            Action action = ()=>operationManager.UpdateOperation("1", updatedOperation: null);
+            action.Should().Throw<ArgumentNullException>();
         }
 
         [Fact]

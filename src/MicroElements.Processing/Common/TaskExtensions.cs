@@ -5,12 +5,12 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace MicroElements.Processing.TaskManager
+namespace MicroElements.Processing.Common
 {
     /// <summary>
     /// Async related extensions.
     /// </summary>
-    public static class TaskExtensions
+    internal static class TaskExtensions
     {
         /// <summary>
         /// This impl is better than Task.WhenAll because it avoids meaningful exception being swallowed when awaiting on error

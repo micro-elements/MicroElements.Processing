@@ -5,11 +5,13 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MicroElements.Functional;
 using MicroElements.Metadata;
+using MicroElements.Processing.Common;
 using MicroElements.Processing.Pipelines;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -30,6 +32,7 @@ namespace MicroElements.Processing.TaskManager
         private readonly ConcurrentDictionary<OperationId, IOperation<TOperationState>> _operations;
 
         // Replaces on status change
+        private readonly SemaphoreSlim _updateLock = new SemaphoreSlim(1);
         private ISession<TSessionState> _session;
 
         // Initializes on StartAll
@@ -80,6 +83,26 @@ namespace MicroElements.Processing.TaskManager
         public ISession<TSessionState> Session => _session;
 
         /// <inheritdoc />
+        public ISession<TSessionState> UpdateSession(Action<SessionUpdateContext<TSessionState>> updateAction)
+        {
+            updateAction.AssertArgumentNotNull(nameof(updateAction));
+
+            using var updateLock = _updateLock.WaitAndGetLockReleaser();
+
+            if (_session.Status != OperationStatus.NotStarted)
+                throw new OperationManagerException($"Session updates available only in {OperationStatus.NotStarted} status. Current status: {_session.Status}.");
+
+            var updateContext = new SessionUpdateContext<TSessionState>(Session);
+            updateAction(updateContext);
+
+            var newState = updateContext.NewState;
+            if (newState.IsNotNull() && !ReferenceEquals(_session.State, newState))
+                _session = _session.With(state: newState);
+
+            return Session;
+        }
+
+        /// <inheritdoc />
         public ISession<TSessionState, TOperationState> SessionWithOperations => _session.WithOperations(GetOperations());
 
         /// <inheritdoc />
@@ -109,10 +132,33 @@ namespace MicroElements.Processing.TaskManager
         /// <inheritdoc />
         public IOperation<TOperationState> UpdateOperation(OperationId operationId, IOperation<TOperationState> updatedOperation)
         {
+            updatedOperation.AssertArgumentNotNull(nameof(updatedOperation));
             IOperation<TOperationState> operation = GetOperationOrThrow(operationId);
+
+            if (!updatedOperation.Id.Equals(operationId))
+                throw new OperationManagerException($"Updated operation id {updatedOperation.Id} is not equal to {operationId}.");
 
             if (!ReferenceEquals(updatedOperation, operation))
             {
+                _operations.TryUpdate(operationId, updatedOperation, operation);
+            }
+
+            return updatedOperation;
+        }
+
+        /// <inheritdoc />
+        public IOperation<TOperationState> UpdateOperation(OperationId operationId, Action<OperationUpdateContext<TOperationState>> updateAction)
+        {
+            updateAction.AssertArgumentNotNull(nameof(updateAction));
+
+            IOperation<TOperationState> operation = GetOperationOrThrow(operationId);
+            IOperation<TOperationState> updatedOperation = operation;
+
+            var updateContext = new OperationUpdateContext<TOperationState>(operation);
+            updateAction(updateContext);
+            if (updateContext.NewState.IsNotNull() && !ReferenceEquals(updateContext.Operation.State, updateContext.NewState))
+            {
+                updatedOperation = operation.With(state: updateContext.NewState);
                 _operations.TryUpdate(operationId, updatedOperation, operation);
             }
 
@@ -127,11 +173,13 @@ namespace MicroElements.Processing.TaskManager
         }
 
         /// <inheritdoc />
-        public Task Start(IExecutionOptions<TSessionState, TOperationState> options)
+        public async Task Start(IExecutionOptions<TSessionState, TOperationState> options)
         {
             if (_options != null)
                 throw new OperationManagerException($"Session {_session.Id} already started");
             options.Executor.AssertArgumentNotNull(nameof(options.Executor));
+
+            using var updateLock = await _updateLock.WaitAsyncAndGetLockReleaser();
 
             _options = options;
             _cts = CreateCancellation(_options);
@@ -155,8 +203,6 @@ namespace MicroElements.Processing.TaskManager
             _sessionCompletionTask = _pipeline
                 .CompleteAndWait()
                 .ContinueWith(OnSessionFinished, TaskContinuationOptions.ExecuteSynchronously);
-
-            return Task.CompletedTask;
         }
 
         /// <inheritdoc />
