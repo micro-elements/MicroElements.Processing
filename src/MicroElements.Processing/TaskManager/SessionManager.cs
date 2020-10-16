@@ -106,7 +106,9 @@ namespace MicroElements.Processing.TaskManager
         /// <inheritdoc />
         public void DeleteSession(string sessionId)
         {
-            GetOperationManager(sessionId)?.Stop();
+            var operationManager = this.GetOperationManagerOrThrow(sessionId);
+            operationManager.Stop();
+            SessionStorage.Delete(sessionId);
         }
     }
 }

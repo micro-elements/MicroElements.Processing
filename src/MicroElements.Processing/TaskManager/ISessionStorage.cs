@@ -30,5 +30,11 @@ namespace MicroElements.Processing.TaskManager
         /// </summary>
         /// <returns>Session keys.</returns>
         IReadOnlyCollection<string> GetKeys();
+
+        /// <summary>
+        /// Deletes by key.
+        /// </summary>
+        /// <param name="sessionId">Session id.</param>
+        void Delete(string sessionId);
     }
 }

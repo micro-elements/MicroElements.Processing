@@ -1,3 +1,8 @@
+# 0.7.0
+- Added ISessionStorage.Delete method.
+- ISessionManager: fixed Delete.
+- Added: GetOperationManagerOrThrow and GetSessionOrThrow extensions
+
 # 0.6.0
 - IOperationManager: Added UpdateSession and new UpdateOperation
 - ISession: Added ExecutionOptions

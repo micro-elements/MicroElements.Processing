@@ -51,5 +51,11 @@ namespace MicroElements.Processing.TaskManager
         {
             return _sessionsCache.Keys;
         }
+
+        /// <inheritdoc />
+        public void Delete(string sessionId)
+        {
+            _sessionsCache.Remove(sessionId);
+        }
     }
 }

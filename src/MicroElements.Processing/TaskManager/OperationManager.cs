@@ -106,7 +106,7 @@ namespace MicroElements.Processing.TaskManager
         public ISession<TSessionState, TOperationState> SessionWithOperations => _session.WithOperations(GetOperations());
 
         /// <inheritdoc />
-        public Task<ISession<TSessionState, TOperationState>> SessionCompletion => _sessionCompletionTask ?? throw new OperationManagerException($"Session {_session.Id} is not started.");
+        public Task<ISession<TSessionState, TOperationState>> SessionCompletion => _sessionCompletionTask ?? throw new OperationManagerException(ErrorCode.SessionIsNotStarted, $"Session is not started. SessionId: {_session.Id}.");
 
         /// <inheritdoc />
         public IReadOnlyCollection<IOperation<TOperationState>> GetOperations()
@@ -176,7 +176,7 @@ namespace MicroElements.Processing.TaskManager
         public async Task Start(IExecutionOptions<TSessionState, TOperationState> options)
         {
             if (_options != null)
-                throw new OperationManagerException($"Session {_session.Id} already started");
+                throw new OperationManagerException(ErrorCode.SessionIsAlreadyStarted, $"Session is already started. SessionId: {_session.Id}.");
             options.Executor.AssertArgumentNotNull(nameof(options.Executor));
 
             using var updateLock = await _updateLock.WaitAsyncAndGetLockReleaser();
@@ -230,7 +230,7 @@ namespace MicroElements.Processing.TaskManager
             IOperation<TOperationState>? operation = GetOperation(operationId);
             if (operation == null)
             {
-                throw new OperationManagerException($"Operation {operationId} is not exists.");
+                throw new OperationManagerException(ErrorCode.OperationDoesNotExists, $"Operation does not exists. OperationId: {operationId}");
             }
 
             return operation;
