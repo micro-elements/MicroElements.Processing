@@ -19,7 +19,7 @@ namespace MicroElements.Processing.TaskManager
         public static IOperationManager<TSessionState, TOperationState> GetOperationManagerOrThrow<TSessionState, TOperationState>(
             this ISessionManager<TSessionState, TOperationState> sessionManager, string sessionId)
         {
-            return sessionManager.GetOperationManager(sessionId) ?? throw new SessionManagerException(ErrorCode.SessionDoesNotExists, $"Session was not found. Id: {sessionId}");
+            return sessionManager.GetOperationManager(sessionId) ?? throw new SessionManagerException(Errors.SessionDoesNotExists(sessionId));
         }
 
         /// <summary>
@@ -34,6 +34,22 @@ namespace MicroElements.Processing.TaskManager
             this ISessionManager<TSessionState, TOperationState> sessionManager, string sessionId)
         {
             return sessionManager.GetOperationManagerOrThrow(sessionId).SessionWithOperations;
+        }
+
+        /// <summary>
+        /// Tries to delete session by session id and returns optional <see cref="Error{TErrorCode}"/>.
+        /// </summary>
+        /// <typeparam name="TSessionState">Session state.</typeparam>
+        /// <typeparam name="TOperationState">Operation state.</typeparam>
+        /// <param name="sessionManager">Source session manager.</param>
+        /// <param name="sessionId">SessionId.</param>
+        /// <returns>Optional error.</returns>
+        public static IError<ErrorCode>? TryDeleteSession<TSessionState, TOperationState>(this ISessionManager<TSessionState, TOperationState> sessionManager, string sessionId)
+        {
+            return Error.Try(() =>
+            {
+                sessionManager.DeleteSession(sessionId);
+            });
         }
     }
 }

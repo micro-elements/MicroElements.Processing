@@ -7,27 +7,27 @@ using System.Runtime.Serialization;
 namespace MicroElements.Processing.TaskManager
 {
     /// <summary>
-    /// OperationManager exception.
+    /// SessionManagerException exception.
     /// </summary>
     [Serializable]
-    public class OperationManagerException : ExceptionWithError<ErrorCode>
+    public class SessionManagerException : ExceptionWithError<ErrorCode>
     {
+        /// <inheritdoc />
+        public SessionManagerException()
+        {
+        }
+
         /// <summary>
-        /// Initializes a new instance of the <see cref="OperationManagerException"/> class.
+        /// Initializes a new instance of the <see cref="SessionManagerException"/> class.
         /// </summary>
         /// <param name="error">Error associated with exception.</param>
-        public OperationManagerException(IError<ErrorCode> error)
+        public SessionManagerException(IError<ErrorCode> error)
             : base(error)
         {
         }
 
         /// <inheritdoc />
-        public OperationManagerException()
-        {
-        }
-
-        /// <inheritdoc />
-        protected OperationManagerException(SerializationInfo info, StreamingContext context)
+        protected SessionManagerException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
         }

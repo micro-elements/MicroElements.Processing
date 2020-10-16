@@ -5,7 +5,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -90,7 +89,7 @@ namespace MicroElements.Processing.TaskManager
             using var updateLock = _updateLock.WaitAndGetLockReleaser();
 
             if (_session.Status != OperationStatus.NotStarted)
-                throw new OperationManagerException($"Session updates available only in {OperationStatus.NotStarted} status. Current status: {_session.Status}.");
+                throw new OperationManagerException(Errors.SessionUpdateIsProhibited(sessionId: _session.Id.Value, sessionStatus: _session.Status.ToString()));
 
             var updateContext = new SessionUpdateContext<TSessionState>(Session);
             updateAction(updateContext);
@@ -106,7 +105,7 @@ namespace MicroElements.Processing.TaskManager
         public ISession<TSessionState, TOperationState> SessionWithOperations => _session.WithOperations(GetOperations());
 
         /// <inheritdoc />
-        public Task<ISession<TSessionState, TOperationState>> SessionCompletion => _sessionCompletionTask ?? throw new OperationManagerException(ErrorCode.SessionIsNotStarted, $"Session is not started. SessionId: {_session.Id}.");
+        public Task<ISession<TSessionState, TOperationState>> SessionCompletion => _sessionCompletionTask ?? throw new OperationManagerException(Errors.SessionIsNotStarted(_session.Id));
 
         /// <inheritdoc />
         public IReadOnlyCollection<IOperation<TOperationState>> GetOperations()
@@ -136,7 +135,11 @@ namespace MicroElements.Processing.TaskManager
             IOperation<TOperationState> operation = GetOperationOrThrow(operationId);
 
             if (!updatedOperation.Id.Equals(operationId))
-                throw new OperationManagerException($"Updated operation id {updatedOperation.Id} is not equal to {operationId}.");
+            {
+                throw new OperationManagerException(Errors.OperationIdDoesNotMatch(
+                    providedOperationId: updatedOperation.Id,
+                    existingOperationId: operationId));
+            }
 
             if (!ReferenceEquals(updatedOperation, operation))
             {
@@ -176,7 +179,8 @@ namespace MicroElements.Processing.TaskManager
         public async Task Start(IExecutionOptions<TSessionState, TOperationState> options)
         {
             if (_options != null)
-                throw new OperationManagerException(ErrorCode.SessionIsAlreadyStarted, $"Session is already started. SessionId: {_session.Id}.");
+                throw new OperationManagerException(Errors.SessionIsAlreadyStarted(_session.Id));
+
             options.Executor.AssertArgumentNotNull(nameof(options.Executor));
 
             using var updateLock = await _updateLock.WaitAsyncAndGetLockReleaser();
@@ -230,7 +234,7 @@ namespace MicroElements.Processing.TaskManager
             IOperation<TOperationState>? operation = GetOperation(operationId);
             if (operation == null)
             {
-                throw new OperationManagerException(ErrorCode.OperationDoesNotExists, $"Operation does not exists. OperationId: {operationId}");
+                throw new OperationManagerException(Errors.OperationDoesNotExists(operationId));
             }
 
             return operation;
@@ -254,6 +258,8 @@ namespace MicroElements.Processing.TaskManager
                 {
                     // Limit by global lock
                     await _sessionManager.GlobalLock.WaitAsync(_cts.Token);
+
+                    TimeSpan globalWaitDuration = stopwatch.Elapsed;
 
                     // Run action
                     resultOperation = await _options.Executor.ExecuteAsync(_session, operation, _cts.Token);

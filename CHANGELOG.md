@@ -1,3 +1,6 @@
+# 0.8.0
+- Error processing unification.
+
 # 0.7.0
 - Added ISessionStorage.Delete method.
 - ISessionManager: fixed Delete.

@@ -2,7 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
+using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 using NodaTime;
 
 namespace MicroElements.Processing.TaskManager
@@ -126,6 +128,8 @@ namespace MicroElements.Processing.TaskManager
     /// </summary>
     public static class SessionMetricsExtensions
     {
+        private static readonly Duration OneDay = Duration.FromDays(1).Minus(Duration.FromSeconds(1));
+
         /// <summary>
         /// Calculates session metrics.
         /// </summary>
@@ -148,7 +152,7 @@ namespace MicroElements.Processing.TaskManager
                 operationsCount > 0 ? (int)(((double)finishedCount / (double)operationsCount) * 100) : 0;
 
             Duration sessionDuration = session.GetDuration();
-            Duration estimation = Duration.FromDays(1).Minus(Duration.FromSeconds(1));
+            Duration estimation = OneDay;
 
             int avgMillisecondsPerOperation = 0;
             double operationsPerMinute = 0;
@@ -180,6 +184,14 @@ namespace MicroElements.Processing.TaskManager
                 speedupRatio = Math.Round(totalFinishedDuration / sessionDuration.TotalMilliseconds, 2);
             }
 
+            // TODO: to add
+            int processorCount = Environment.ProcessorCount;
+            int globalConcurrencyLevel;
+            // TODO: GlobalLock waiting time
+            // TODO: Operation metrics? ServerTiming?
+            // TODO: ToContainer
+
+
             return new SessionMetrics(
                 operationsCount: operationsCount,
                 inProgressCount: inProgressCount,
@@ -193,6 +205,25 @@ namespace MicroElements.Processing.TaskManager
                 estimation: estimation,
                 maxConcurrencyLevel: concurrencyLevel,
                 speedupRatio: speedupRatio);
+        }
+
+        /// <summary>
+        /// Gets CPU usage for process.
+        /// Source: https://medium.com/@jackwild/getting-cpu-usage-in-net-core-7ef825831b8b.
+        /// </summary>
+        /// <returns>CPU usage in range [0..100].</returns>
+        public static async Task<double> GetCpuUsageForProcess()
+        {
+            var startTime = DateTime.UtcNow;
+            var startCpuUsage = Process.GetCurrentProcess().TotalProcessorTime;
+            await Task.Delay(500);
+
+            var endTime = DateTime.UtcNow;
+            var endCpuUsage = Process.GetCurrentProcess().TotalProcessorTime;
+            var cpuUsedMs = (endCpuUsage - startCpuUsage).TotalMilliseconds;
+            var totalMsPassed = (endTime - startTime).TotalMilliseconds;
+            var cpuUsageTotal = cpuUsedMs / (Environment.ProcessorCount * totalMsPassed);
+            return cpuUsageTotal * 100;
         }
     }
 }
