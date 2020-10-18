@@ -2,6 +2,8 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using App.Metrics;
+using App.Metrics.Counter;
 using FluentAssertions;
 using MicroElements.Functional;
 using MicroElements.Processing.TaskManager;
@@ -112,7 +114,7 @@ namespace MicroElements.Processing.Tests
             await operationManager.Start(new ExecutionOptions<SessionState, TaskState>()
             {
                 Executor = new MultiplyByTwo(), 
-                MaxConcurrencyLevel = 4,
+                MaxConcurrencyLevel = 5,
                 OnOperationFinished = OnOperationFinished,
                 OnSessionFinished = OnSessionFinished
             });
@@ -163,6 +165,22 @@ namespace MicroElements.Processing.Tests
             metrics.InProgressCount.Should().Be(0);
         }
 
+        [Fact]
+        public void Metrics()
+        {
+            IMetrics metrics = AppMetrics.CreateDefaultBuilder().Build();
+
+            CounterOptions counterOptions = new CounterOptions()
+            {
+                Context = "App",
+                Name = "Counter",
+            };
+            metrics.Measure.Counter.Increment(counterOptions);
+
+            MetricsContextValueSource context = metrics.Snapshot.GetForContext("App");
+            CounterValue counterValue1 = context.Counters.First().Value;
+        }
+
         private IOperationManager<SessionState, TaskState> CreateOperationManager()
         {
             var configuration = new SessionManagerConfiguration() {MaxConcurrencyLevel = 4};
@@ -174,7 +192,8 @@ namespace MicroElements.Processing.Tests
                 new OperationId("test"),
                 new SessionState(),
                 sessionManager);
-            return operationManager;
+
+            return sessionManager.AddOperationManager(operationManager);
         }
 
         private void OnSessionFinished(ISession<SessionState, TaskState> obj)

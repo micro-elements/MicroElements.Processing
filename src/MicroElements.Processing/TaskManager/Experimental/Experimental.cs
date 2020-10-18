@@ -1,4 +1,6 @@
-﻿namespace MicroElements.Processing.TaskManager
+﻿using System;
+
+namespace MicroElements.Processing.TaskManager
 {
     internal interface ISessionFactory<TSessionState, TOperationState>
     {
