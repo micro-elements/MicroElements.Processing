@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using MicroElements.Functional;
+using MicroElements.Metadata;
 using NodaTime;
 
 namespace MicroElements.Processing.TaskManager
@@ -45,6 +46,7 @@ namespace MicroElements.Processing.TaskManager
         /// <param name="startedAt">New startedAt.</param>
         /// <param name="finishedAt">New finishedAt.</param>
         /// <param name="exception">Exception.</param>
+        /// <param name="metadata">Metadata for session.</param>
         /// <param name="executionOptions">Session execution options.</param>
         /// <returns>New instance of session.</returns>
         public static ISession<TSessionState> With<TSessionState>(
@@ -55,6 +57,7 @@ namespace MicroElements.Processing.TaskManager
             LocalDateTime? startedAt = null,
             LocalDateTime? finishedAt = null,
             Exception? exception = null,
+            IPropertyContainer? metadata = null,
             IExecutionOptions? executionOptions = null)
         {
             var sessionOperation = source.Operation.With(
@@ -63,7 +66,8 @@ namespace MicroElements.Processing.TaskManager
                     status: status,
                     startedAt: startedAt,
                     finishedAt: finishedAt,
-                    exception: exception);
+                    exception: exception,
+                    metadata: metadata);
 
             return new LazySession<TSessionState>(
                 sessionOperation: sessionOperation,

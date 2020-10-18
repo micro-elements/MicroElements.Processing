@@ -33,7 +33,7 @@ namespace MicroElements.Processing.TaskManager
         }
 
         /// <inheritdoc />
-        public override string ToString() => $"{nameof(ErrorCode)}: {ErrorCode}, {nameof(Message)}: {Message}";
+        public override string ToString() => $"{nameof(ErrorCode)}: {ErrorCode}, {nameof(Message)}: {Message.FormattedMessage}";
     }
 
     /// <summary>

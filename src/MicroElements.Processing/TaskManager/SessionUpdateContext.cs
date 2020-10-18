@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Diagnostics.CodeAnalysis;
+using MicroElements.Metadata;
 
 namespace MicroElements.Processing.TaskManager
 {
@@ -20,7 +21,12 @@ namespace MicroElements.Processing.TaskManager
         /// Gets or sets new state for session.
         /// </summary>
         [MaybeNull]
-        public TSessionState NewState { get; set; }
+        public TSessionState NewState { internal get; set; }
+
+        /// <summary>
+        /// Gets or sets new metadata for session.
+        /// </summary>
+        public IPropertyContainer? NewMetadata { internal get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SessionUpdateContext{TSessionState}"/> class.

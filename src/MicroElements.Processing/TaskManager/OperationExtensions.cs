@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using MicroElements.Functional;
 using MicroElements.Metadata;
 using NodaTime;
@@ -31,7 +32,7 @@ namespace MicroElements.Processing.TaskManager
             this IOperation<TOperationState> operation,
             OperationId? id = default,
             OperationStatus? status = default,
-            TOperationState state = default,
+            [AllowNull] TOperationState state = default,
             LocalDateTime? startedAt = default,
             LocalDateTime? finishedAt = default,
             Exception? exception = null,
@@ -40,7 +41,7 @@ namespace MicroElements.Processing.TaskManager
             return new Operation<TOperationState>
             (
                 id: id ?? operation.Id,
-                state: !state.IsDefault() ? state : operation.State,
+                state: state.IsNotNull() ? state : operation.State,
                 status: status ?? operation.Status,
                 startedAt: startedAt ?? operation.StartedAt,
                 finishedAt: finishedAt ?? operation.FinishedAt,

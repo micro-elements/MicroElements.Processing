@@ -21,6 +21,8 @@ namespace MicroElements.Processing.TaskManager
     /// <typeparam name="TOperationState">Operation state.</typeparam>
     public class SessionManager<TSessionState, TOperationState> : ISessionManager<TSessionState, TOperationState>
     {
+        private readonly IMutablePropertyContainer _metadata;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="SessionManager{TSessionState, TOperationState}"/> class.
         /// </summary>
@@ -40,7 +42,7 @@ namespace MicroElements.Processing.TaskManager
             LoggerFactory = loggerFactory.AssertArgumentNotNull(nameof(loggerFactory));
             SessionStorage = sessionStorage.AssertArgumentNotNull(nameof(sessionStorage));
 
-            Metadata = new MutablePropertyContainer(metadata);
+            _metadata = new MutablePropertyContainer(metadata);
 
             ServiceContainer serviceContainer = new ServiceContainer();
             serviceContainer.AddService(typeof(ILoggerFactory), LoggerFactory);
@@ -48,6 +50,7 @@ namespace MicroElements.Processing.TaskManager
             Services = serviceContainer;
 
             GlobalLock = new SemaphoreSlim(configuration.MaxConcurrencyLevel);
+            _metadata.SetValue(SessionMetricsMeta.GlobalConcurrencyLevel, configuration.MaxConcurrencyLevel);
         }
 
         private ISessionStorage<TSessionState, TOperationState> SessionStorage { get; }
@@ -55,7 +58,7 @@ namespace MicroElements.Processing.TaskManager
         private ILoggerFactory LoggerFactory { get; }
 
         /// <inheritdoc />
-        public IPropertyContainer Metadata { get; }
+        public IPropertyContainer Metadata => _metadata;
 
         /// <inheritdoc />
         public ISessionManagerConfiguration Configuration { get; }
@@ -71,6 +74,11 @@ namespace MicroElements.Processing.TaskManager
         {
             if (operationManager.SessionManager != this)
                 throw new ArgumentException("OperationManager.SessionManager should be the same as target SessionManager", nameof(operationManager));
+
+            // Add SessionManager metadata to OperationManager
+            var mergedMetadata = new MutablePropertyContainer(_metadata);
+            mergedMetadata.AddRange(operationManager.Metadata);
+            operationManager.UpdateSession(context => context.NewMetadata = mergedMetadata);
 
             SessionStorage.Set(operationManager);
 

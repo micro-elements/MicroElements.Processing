@@ -1,5 +1,13 @@
 # 0.8.0
 - Error processing unification.
+- Added System.Diagnostics.DiagnosticSource to provide initial OpenTelemetry support
+- Added SessionUpdateContext.NewMetadata to update metadata for session
+- SessionManager adds its metadata to added OperatioManagers
+- SessionManager provides new metadata GlobalConcurrencyLevel
+- OperatioManager adds metadata OperationMeta.GlobalWaitDuration to operation after global lock accured
+- OperatioManager can use IOperationExecutorExtended instead IOperationExecutor. See IExecutionOptions.
+- SessionMetrics now implements IMetadataProvider with metadata properties from SessionMetricsMeta
+- Added metrics to SessionMetrics: GlobalConcurrencyLevel, ProcessorCount, AvgMillisecondsPerOperation, TotalWaitingTime, AvgProcessingTimePerOperation, AvgWaitingTimePerOperation
 
 # 0.7.0
 - Added ISessionStorage.Delete method.

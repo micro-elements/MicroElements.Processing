@@ -2,9 +2,11 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using MicroElements.Metadata;
 using NodaTime;
 
 namespace MicroElements.Processing.TaskManager
@@ -12,8 +14,13 @@ namespace MicroElements.Processing.TaskManager
     /// <summary>
     /// Session metrics.
     /// </summary>
-    public class SessionMetrics
+    public class SessionMetrics : IMetadataProvider
     {
+        private readonly IMutablePropertyContainer _metadata;
+
+        /// <inheritdoc />
+        public IPropertyContainer Metadata => _metadata;
+
         /// <summary>
         /// Gets operations count.
         /// </summary>
@@ -50,12 +57,12 @@ namespace MicroElements.Processing.TaskManager
         public int AvgMillisecondsPerOperation { get; }
 
         /// <summary>
-        /// Gets operations per minute metric.
+        /// Gets operations per minute.
         /// </summary>
         public double OperationsPerMinute { get; }
 
         /// <summary>
-        /// Gets operations per second metric.
+        /// Gets operations per second.
         /// </summary>
         public double OperationsPerSecond { get; }
 
@@ -94,6 +101,7 @@ namespace MicroElements.Processing.TaskManager
         /// <param name="estimation">Estimated time to finish.</param>
         /// <param name="maxConcurrencyLevel">Maximum concurrency level for session.</param>
         /// <param name="speedupRatio">Speedup Ratio.</param>
+        /// <param name="sourceValues">Metrics.</param>
         public SessionMetrics(
             int operationsCount,
             int inProgressCount,
@@ -106,7 +114,8 @@ namespace MicroElements.Processing.TaskManager
             Duration duration,
             Duration estimation,
             int maxConcurrencyLevel,
-            double speedupRatio)
+            double speedupRatio,
+            IEnumerable<IPropertyValue> sourceValues)
         {
             OperationsCount = operationsCount;
             InProgressCount = inProgressCount;
@@ -120,7 +129,105 @@ namespace MicroElements.Processing.TaskManager
             Estimation = estimation;
             MaxConcurrencyLevel = maxConcurrencyLevel;
             SpeedupRatio = speedupRatio;
+
+            _metadata = new MutablePropertyContainer(sourceValues);
         }
+    }
+
+    /// <summary>
+    /// SessionMetrics metadata.
+    /// </summary>
+    public static class SessionMetricsMeta
+    {
+        /// <summary>
+        /// GlobalConcurrencyLevel is max concurrency level set for all sessions in <see cref="ISessionManager"/>.
+        /// </summary>
+        public static readonly IProperty<int> GlobalConcurrencyLevel = new Property<int>("GlobalConcurrencyLevel");
+
+        /// <summary>
+        /// Processor count.
+        /// </summary>
+        public static readonly IProperty<int> ProcessorCount = new Property<int>("ProcessorCount");
+
+        /// <summary>
+        /// Gets operations count.
+        /// </summary>
+        public static readonly IProperty<int> OperationsCount = new Property<int>("OperationsCount");
+
+        /// <summary>
+        /// Gets count of operations in <see cref="OperationStatus.InProgress"/> status.
+        /// </summary>
+        public static readonly IProperty<int> InProgressCount = new Property<int>("InProgressCount");
+
+        /// <summary>
+        /// Gets count of operations in <see cref="OperationStatus.Finished"/> status.
+        /// </summary>
+        public static readonly IProperty<int> FinishedCount = new Property<int>("FinishedCount");
+
+        /// <summary>
+        /// Gets count of failed operations (with <see cref="IOperation.Exception"/>) in <see cref="OperationStatus.Finished"/> status.
+        /// </summary>
+        public static readonly IProperty<int> ErrorCount = new Property<int>("ErrorCount");
+
+        /// <summary>
+        /// Gets count of success operations in <see cref="OperationStatus.Finished"/> status.
+        /// </summary>
+        public static readonly IProperty<int> SuccessCount = new Property<int>("SuccessCount");
+
+        /// <summary>
+        /// Gets progress in range [0..100].
+        /// </summary>
+        public static readonly IProperty<int> ProgressInPercents = new Property<int>("ProgressInPercents");
+
+        /// <summary>
+        /// Gets average milliseconds per operation.
+        /// </summary>
+        public static readonly IProperty<int> AvgMillisecondsPerOperation = new Property<int>("AvgMillisecondsPerOperation");
+
+        /// <summary>
+        /// Gets operations per minute.
+        /// </summary>
+        public static readonly IProperty<double> OperationsPerMinute = new Property<double>("OperationsPerMinute");
+
+        /// <summary>
+        /// Gets operations per second.
+        /// </summary>
+        public static readonly IProperty<double> OperationsPerSecond = new Property<double>("OperationsPerSecond");
+
+        /// <summary>
+        /// Gets session duration.
+        /// </summary>
+        public static readonly IProperty<Duration> Duration = new Property<Duration>("Duration");
+
+        /// <summary>
+        /// Gets estimated time to finish.
+        /// </summary>
+        public static readonly IProperty<Duration> Estimation = new Property<Duration>("Estimation");
+
+        /// <summary>
+        /// Gets maximum concurrency level for session.
+        /// </summary>
+        public static readonly IProperty<int> MaxConcurrencyLevel = new Property<int>("MaxConcurrencyLevel");
+
+        /// <summary>
+        /// Gets Speedup Ratio. Evaluates as total execution time of finished operations divided by total session duration.
+        /// </summary>
+        public static readonly IProperty<double> SpeedupRatio = new Property<double>("SpeedupRatio");
+
+        /// <summary>
+        /// Total waiting time sor session.
+        /// </summary>
+        public static readonly IProperty<Duration> TotalWaitingTime = new Property<Duration>("TotalWaitingTime");
+
+        /// <summary>
+        /// Full processing time for operation: Wait + Execution.
+        /// </summary>
+        public static readonly IProperty<int> AvgProcessingTimePerOperation = new Property<int>("AvgProcessingTimePerOperation");
+
+        /// <summary>
+        /// Gets waiting time for global lock per operation.
+        /// </summary>
+        public static readonly IProperty<int> AvgWaitingTimePerOperation = new Property<int>("AvgWaitingTimePerOperation");
     }
 
     /// <summary>
@@ -140,6 +247,8 @@ namespace MicroElements.Processing.TaskManager
         {
             var operations = session.GetOperations();
 
+            int globalConcurrencyLevel = session.Metadata.GetValue(SessionMetricsMeta.GlobalConcurrencyLevel);
+
             int operationsCount = operations.Count;
             int inProgressCount = operations.Count(operation => operation.Status == OperationStatus.InProgress);
             int finishedCount = operations.Count(operation => operation.Status == OperationStatus.Finished);
@@ -154,12 +263,14 @@ namespace MicroElements.Processing.TaskManager
             Duration sessionDuration = session.GetDuration();
             Duration estimation = OneDay;
 
+            int avgProcessingTimePerOperation = 0;
             int avgMillisecondsPerOperation = 0;
             double operationsPerMinute = 0;
             double operationsPerSecond = 0;
-
             int concurrencyLevel = 0;
             double speedupRatio = 0;
+            double totalWaitingTime = 0;
+            int avgWaitingTimePerOperation = 0;
 
             if (finishedCount > 0)
             {
@@ -172,7 +283,16 @@ namespace MicroElements.Processing.TaskManager
                 double totalFinishedDuration = operations
                     .Where(operation => operation.Status == OperationStatus.Finished)
                     .Aggregate(0.0, (ms, operation) => ms + operation.GetDuration().TotalMilliseconds);
-                avgMillisecondsPerOperation = (int)(totalFinishedDuration / finishedCount);
+
+                totalWaitingTime = operations
+                    .Where(operation => operation.Status == OperationStatus.Finished)
+                    .Aggregate(0.0, (ms, operation) => ms + operation.Metadata.GetValue(OperationMeta.GlobalWaitDuration).TotalMilliseconds);
+
+                double totalExecutionTime = totalFinishedDuration - totalWaitingTime;
+
+                avgProcessingTimePerOperation = (int)(totalFinishedDuration / finishedCount);
+                avgMillisecondsPerOperation = (int)(totalExecutionTime / finishedCount);
+                avgWaitingTimePerOperation = avgProcessingTimePerOperation / finishedCount;
 
                 double estimationTimeInMilliseconds = sessionDuration.TotalMilliseconds * notFinished / finishedCount;
                 estimation = Duration.FromMilliseconds(estimationTimeInMilliseconds);
@@ -181,16 +301,33 @@ namespace MicroElements.Processing.TaskManager
                 {
                     concurrencyLevel = session.ExecutionOptions.MaxConcurrencyLevel;
                 }
-                speedupRatio = Math.Round(totalFinishedDuration / sessionDuration.TotalMilliseconds, 2);
+
+                speedupRatio = Math.Round(totalExecutionTime / sessionDuration.TotalMilliseconds, 2);
             }
 
-            // TODO: to add
-            int processorCount = Environment.ProcessorCount;
-            int globalConcurrencyLevel;
-            // TODO: GlobalLock waiting time
-            // TODO: Operation metrics? ServerTiming?
-            // TODO: ToContainer
+            var metrics = new MutablePropertyContainer()
+                .WithValue(SessionMetricsMeta.ProcessorCount, Environment.ProcessorCount)
+                .WithValue(SessionMetricsMeta.GlobalConcurrencyLevel, globalConcurrencyLevel)
+                .WithValue(SessionMetricsMeta.MaxConcurrencyLevel, concurrencyLevel)
 
+                .WithValue(SessionMetricsMeta.OperationsCount, operationsCount)
+                .WithValue(SessionMetricsMeta.InProgressCount, inProgressCount)
+                .WithValue(SessionMetricsMeta.FinishedCount, finishedCount)
+                .WithValue(SessionMetricsMeta.ErrorCount, errorCount)
+                .WithValue(SessionMetricsMeta.SuccessCount, finishedCount - errorCount)
+                .WithValue(SessionMetricsMeta.ProgressInPercents, progressInPercents)
+                .WithValue(SessionMetricsMeta.AvgMillisecondsPerOperation, avgMillisecondsPerOperation)
+
+                .WithValue(SessionMetricsMeta.OperationsPerMinute, operationsPerMinute)
+                .WithValue(SessionMetricsMeta.OperationsPerSecond, operationsPerSecond)
+                .WithValue(SessionMetricsMeta.Duration, sessionDuration)
+                .WithValue(SessionMetricsMeta.Estimation, estimation)
+                .WithValue(SessionMetricsMeta.SpeedupRatio, speedupRatio)
+
+                .WithValue(SessionMetricsMeta.TotalWaitingTime, Duration.FromMilliseconds(totalWaitingTime))
+                .WithValue(SessionMetricsMeta.AvgProcessingTimePerOperation, avgProcessingTimePerOperation)
+                .WithValue(SessionMetricsMeta.AvgWaitingTimePerOperation, avgWaitingTimePerOperation)
+                ;
 
             return new SessionMetrics(
                 operationsCount: operationsCount,
@@ -204,7 +341,8 @@ namespace MicroElements.Processing.TaskManager
                 duration: sessionDuration,
                 estimation: estimation,
                 maxConcurrencyLevel: concurrencyLevel,
-                speedupRatio: speedupRatio);
+                speedupRatio: speedupRatio,
+                sourceValues: metrics);
         }
 
         /// <summary>

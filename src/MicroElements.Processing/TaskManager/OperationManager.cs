@@ -40,8 +40,6 @@ namespace MicroElements.Processing.TaskManager
         private Pipeline<IOperation<TOperationState>>? _pipeline;
         private Task<ISession<TSessionState, TOperationState>>? _sessionCompletionTask;
 
-        //TODO: retry
-
         /// <summary>
         /// Initializes a new instance of the <see cref="OperationManager{TSessionState, TOperationState}"/> class.
         /// </summary>
@@ -95,8 +93,12 @@ namespace MicroElements.Processing.TaskManager
             updateAction(updateContext);
 
             var newState = updateContext.NewState;
+            var newMetadata = updateContext.NewMetadata;
+
             if (newState.IsNotNull() && !ReferenceEquals(_session.State, newState))
                 _session = _session.With(state: newState);
+            if (newMetadata.IsNotNull() && !ReferenceEquals(_session.State, newMetadata))
+                _session = _session.With(metadata: newMetadata);
 
             return Session;
         }
@@ -181,7 +183,10 @@ namespace MicroElements.Processing.TaskManager
             if (_options != null)
                 throw new OperationManagerException(Errors.SessionIsAlreadyStarted(_session.Id));
 
-            options.Executor.AssertArgumentNotNull(nameof(options.Executor));
+            if (options.ExecutorExtended == null && options.Executor == null)
+                throw new ArgumentException($"ExecutionOptions: {nameof(options.ExecutorExtended)} or {nameof(options.Executor)} should be provided.", nameof(options));
+            if (options.ExecutorExtended != null && options.Executor != null)
+                throw new ArgumentException($"ExecutionOptions: Only one of {nameof(options.ExecutorExtended)}, {nameof(options.Executor)} should be provided.", nameof(options));
 
             using var updateLock = await _updateLock.WaitAsyncAndGetLockReleaser();
 
@@ -245,6 +250,9 @@ namespace MicroElements.Processing.TaskManager
             IOperation<TOperationState> resultOperation = operation;
             try
             {
+                using Activity? processingSpan = OpenTelemetry.Processing.StartActivity("ProcessOperation");
+                processingSpan?.SetTag("OperationId", operation.Id.Value);
+
                 // Set InProgress
                 operation = operation.With(
                     startedAt: DateTime.Now.ToLocalDateTime(),
@@ -257,16 +265,28 @@ namespace MicroElements.Processing.TaskManager
                 try
                 {
                     // Limit by global lock
-                    await _sessionManager.GlobalLock.WaitAsync(_cts.Token);
+                    await _sessionManager.GlobalLock.WaitAsync(_cts!.Token);
 
-                    TimeSpan globalWaitDuration = stopwatch.Elapsed;
+                    // Mark global wait finished
+                    operation = operation.With(
+                        metadata: new MutablePropertyContainer(operation.Metadata)
+                            .WithValue(OperationMeta.GlobalWaitDuration, stopwatch.Elapsed));
+
+                    using var executionSpan = OpenTelemetry.Processing.StartActivity("Execution", ActivityKind.Internal, parentId: processingSpan?.Id);
 
                     // Run action
-                    resultOperation = await _options.Executor.ExecuteAsync(_session, operation, _cts.Token);
-
-                    //TODO: protect managed state of operation (startedAt, status, etc...)
-                    //var context = new OperationExecutionContext<TSessionState, TOperationState>(_session, operation, _cts.Token);
-                    //resultOperation = operation.With(state: context.NewState);
+                    {
+                        if (_options!.Executor != null)
+                        {
+                            resultOperation = await _options.Executor.ExecuteAsync(_session, operation, _cts.Token);
+                        }
+                        else if (_options.ExecutorExtended != null)
+                        {
+                            var context = new OperationExecutionContext<TSessionState, TOperationState>(_session, operation, _cts.Token);
+                            await _options.ExecutorExtended.ExecuteAsync(context);
+                            resultOperation = operation.With(state: context.NewState);
+                        }
+                    }
                 }
                 catch (Exception e)
                 {
@@ -288,8 +308,9 @@ namespace MicroElements.Processing.TaskManager
             }
             catch (OperationManagerException e)
             {
-                _session.Messages.AddError($"OperationManager error. Operation {operation.Id} will not be processed. Message: {e.Message}");
-                _logger.LogError(e, $"OperationManager error. Operation {operation.Id} will not be processed.");
+                var error = $"OperationManager {_session.Id} processing error: {e.Error}";
+                _session.Messages.AddError(error);
+                _logger.LogError(e, error);
             }
 
             return resultOperation;
