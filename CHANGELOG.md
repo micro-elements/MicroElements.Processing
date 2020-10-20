@@ -1,3 +1,7 @@
+# 0.9.0
+- MicroElements libs updated
+- SessionMetrics now constructed by metadata and can be extended.
+
 # 0.8.0
 - Error processing unification.
 - Added System.Diagnostics.DiagnosticSource to provide initial OpenTelemetry support
