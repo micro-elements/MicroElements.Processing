@@ -1,3 +1,10 @@
+# 0.10.0
+- New: OperationManager Tracing added (supports OpenTelemetry with 'MicroElements.Processing' source name).
+- Tracer added to OperationExecutionContext to have ability trace children operation activities
+- OperationStatusWithError added
+- MicroElements libs updated
+- fixed nulls in SessionMetricsMeta.PropertySet
+
 # 0.9.0
 - MicroElements libs updated
 - SessionMetrics now constructed by metadata and can be extended.
