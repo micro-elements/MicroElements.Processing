@@ -102,6 +102,36 @@ namespace MicroElements.Processing.Tests
         }
 
         [Fact]
+        public async Task singlethreaded_simulation_should_be_successful()
+        {
+            IOperationManager<SessionState, TaskState> operationManager = CreateOperationManager();
+
+            Enumerable
+                .Range(1, 5)
+                .Select(i => operationManager.CreateOperation(new OperationId(i.ToString()), new TaskState { Number = i }))
+                .ToArray();
+
+            await operationManager.Start(new ExecutionOptions<SessionState, TaskState>()
+            {
+                Executor = new MultiplyByTwo(),
+                MaxConcurrencyLevel = 1,
+                OnOperationFinished = OnOperationFinished,
+                OnSessionFinished = OnSessionFinished
+            });
+
+            await operationManager.SessionCompletion;
+
+            var session = operationManager.SessionWithOperations;
+            session.Status.Should().Be(OperationStatus.Finished);
+
+            var operation = operationManager.GetOperation(new OperationId("2"));
+            operation.State.Result.Should().Be(4);
+
+            var metrics = session.GetMetrics();
+            metrics.Should().NotBeNull();
+        }
+
+        [Fact]
         public async Task multithreaded_simulation_should_be_successful()
         {
             IOperationManager<SessionState, TaskState> operationManager = CreateOperationManager();
@@ -113,7 +143,7 @@ namespace MicroElements.Processing.Tests
 
             await operationManager.Start(new ExecutionOptions<SessionState, TaskState>()
             {
-                Executor = new MultiplyByTwo(), 
+                ExecutorExtended = new MultiplyByTwoExt(), 
                 MaxConcurrencyLevel = 5,
                 OnOperationFinished = OnOperationFinished,
                 OnSessionFinished = OnSessionFinished
@@ -236,6 +266,53 @@ namespace MicroElements.Processing.Tests
 
             // the same operation
             return operation;
+        }
+    }
+
+    public class MultiplyByTwoExt : IOperationExecutorExtended<SessionState, TaskState>
+    {
+        /// <inheritdoc />
+        public async Task<IOperation<TaskState>> ExecuteAsync(ISession<SessionState> session, IOperation<TaskState> operation, CancellationToken cancellation = default)
+        {
+            // Sample of mutable state
+            operation.State.Result = operation.State.Number * 2;
+
+            // long work imitation
+            await Task.Delay(1000, cancellation);
+
+            // Session can be accessed
+            session.Messages.Add(new Message($"Input: {operation.State.Number}, Result: {operation.State.Result}"));
+
+            // the same operation
+            return operation;
+        }
+
+        /// <inheritdoc />
+        public async Task ExecuteAsync(OperationExecutionContext<SessionState, TaskState> context)
+        {
+            var operation = context.Operation;
+            // Sample of mutable state
+            operation.State.Result = operation.State.Number * 2;
+
+            context.NewState = operation.State;
+
+            // long work imitation
+            await Task.Delay(100, context.Cancellation);
+
+            using (context.Tracer.StartActivity("db"))
+            {
+                await Task.Delay(200);
+            }
+
+            using (context.Tracer.StartActivity("ext_api"))
+            {
+                await Task.Delay(300);
+            }
+
+            await Task.Delay(100, context.Cancellation);
+
+            // Session can be accessed
+            context.Session.Messages.Add(new Message($"Input: {operation.State.Number}, Result: {operation.State.Result}"));
         }
     }
 }

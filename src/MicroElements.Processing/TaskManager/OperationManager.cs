@@ -12,6 +12,7 @@ using MicroElements.Functional;
 using MicroElements.Metadata;
 using MicroElements.Processing.Common;
 using MicroElements.Processing.Pipelines;
+using MicroElements.Processing.TaskManager.Metrics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NodaTime.Extensions;
@@ -39,6 +40,7 @@ namespace MicroElements.Processing.TaskManager
         private CancellationTokenSource? _cts;
         private Pipeline<IOperation<TOperationState>>? _pipeline;
         private Task<ISession<TSessionState, TOperationState>>? _sessionCompletionTask;
+        private SessionTracer _sessionTracer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OperationManager{TSessionState, TOperationState}"/> class.
@@ -206,6 +208,9 @@ namespace MicroElements.Processing.TaskManager
                 startedAt: DateTime.Now.ToLocalDateTime(),
                 executionOptions: options);
 
+            var sessionTags = new[] { new KeyValuePair<string, object?>("SessionId", _session.Id.ToString()), };
+            _sessionTracer = new SessionTracer(_logger, sessionTags);
+
             _logger.LogInformation($"Session started. SessionId: {_session.Id}.");
 
             // Add operations to pipeline
@@ -250,8 +255,8 @@ namespace MicroElements.Processing.TaskManager
             IOperation<TOperationState> resultOperation = operation;
             try
             {
-                using Activity? processingSpan = OpenTelemetry.Processing.StartActivity("ProcessOperation");
-                processingSpan?.SetTag("OperationId", operation.Id.Value);
+                var operationTags = new[] { new KeyValuePair<string, object?>("OperationId", operation.Id.ToString()) };
+                using var operationTracer = new ChildTracer(_sessionTracer, "Operation", operationTags);
 
                 // Set InProgress
                 operation = operation.With(
@@ -264,17 +269,19 @@ namespace MicroElements.Processing.TaskManager
 
                 try
                 {
-                    // Limit by global lock
-                    await _sessionManager.GlobalLock.WaitAsync(_cts!.Token);
+                    using (operationTracer.StartActivity("WaitExecution"))
+                    {
+                        // Limit by global lock
+                        await _sessionManager.GlobalLock.WaitAsync(_cts!.Token);
+                    }
 
                     // Mark global wait finished
                     operation = operation.With(
                         metadata: new MutablePropertyContainer(operation.Metadata)
                             .WithValue(OperationMeta.GlobalWaitDuration, stopwatch.Elapsed));
 
-                    using var executionSpan = OpenTelemetry.Processing.StartActivity("Execution", ActivityKind.Internal, parentId: processingSpan?.Id);
-
                     // Run action
+                    using var executionTracer = new ChildTracer(operationTracer, "Execution");
                     {
                         if (_options!.Executor != null)
                         {
@@ -282,7 +289,7 @@ namespace MicroElements.Processing.TaskManager
                         }
                         else if (_options.ExecutorExtended != null)
                         {
-                            var context = new OperationExecutionContext<TSessionState, TOperationState>(_session, operation, _cts.Token);
+                            var context = new OperationExecutionContext<TSessionState, TOperationState>(_session, operation, _cts.Token, executionTracer);
                             await _options.ExecutorExtended.ExecuteAsync(context);
                             resultOperation = operation.With(state: context.NewState);
                         }
@@ -339,6 +346,8 @@ namespace MicroElements.Processing.TaskManager
             string reason = _cts.IsCancellationRequested ? "(cancelled)" : string.Empty;
 
             _logger.LogInformation($"Session finished {reason}. SessionId: {_session.Id}. Elapsed: {_session.GetDuration()}.");
+
+            _sessionTracer.Dispose();
 
             var sessionWithOperations = SessionWithOperations;
 

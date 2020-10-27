@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
+using MicroElements.Processing.TaskManager.Metrics;
 
 namespace MicroElements.Processing.TaskManager
 {
@@ -29,6 +30,11 @@ namespace MicroElements.Processing.TaskManager
         public CancellationToken Cancellation { get; }
 
         /// <summary>
+        /// Gets a service to record operation timings.
+        /// </summary>
+        public ITracer Tracer { get; }
+
+        /// <summary>
         /// Gets or sets new state for operation.
         /// </summary>
         [MaybeNull]
@@ -40,14 +46,17 @@ namespace MicroElements.Processing.TaskManager
         /// <param name="session">Owner session.</param>
         /// <param name="operation">Operation to execute.</param>
         /// <param name="cancellation">Cancellation token.</param>
+        /// <param name="tracer">Operation metrics.</param>
         public OperationExecutionContext(
             ISession<TSessionState> session,
             IOperation<TOperationState> operation,
-            CancellationToken cancellation)
+            CancellationToken cancellation,
+            ITracer tracer)
         {
             Session = session;
             Operation = operation;
             Cancellation = cancellation;
+            Tracer = tracer;
         }
     }
 }
