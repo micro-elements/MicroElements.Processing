@@ -104,7 +104,7 @@ namespace MicroElements.Processing.TaskManager
         /// <summary>
         /// Gets <see cref="IPropertySet"/> for <see cref="SessionMetrics"/>.
         /// </summary>
-        public static IPropertySet PropertySet { get; } = new PropertySet(GetProperties());
+        public static IPropertySet PropertySet { get; }
 
         /// <summary>
         /// Gets properties for <see cref="SessionMetrics"/>.
@@ -130,6 +130,12 @@ namespace MicroElements.Processing.TaskManager
             yield return SessionMetricsMeta.TotalWaitingTime;
             yield return SessionMetricsMeta.AvgProcessingTimePerOperation;
             yield return SessionMetricsMeta.AvgWaitingTimePerOperation;
+        }
+
+        static SessionMetricsMeta()
+        {
+            // deal with static readonly
+            PropertySet = new PropertySet(GetProperties());
         }
 
         /// <summary>

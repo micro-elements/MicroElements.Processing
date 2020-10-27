@@ -17,5 +17,12 @@ namespace MicroElements.Processing.Tests
             new OperationId("test").Should().BeEquivalentTo(new OperationId("test"));
             new OperationId("test").GetHashCode().Should().Be(new OperationId("test").GetHashCode());
         }
+
+        [Fact]
+        public void property_set_should_be_not_null()
+        {
+            SessionMetricsMeta.PropertySet.Should().NotContainNulls();
+            SessionMetricsMeta.GetProperties().Should().NotContainNulls();
+        }
     }
 }
