@@ -61,5 +61,21 @@ namespace MicroElements.Processing.TaskManager
             var startedAt = operation.StartedAt.GetValueOrDefault(finishedAt);
             return (finishedAt - startedAt).ToDuration();
         }
+
+        /// <summary>
+        /// Gets alternative status representation.
+        /// </summary>
+        /// <param name="operation">Source operation.</param>
+        /// <returns><see cref="OperationStatusWithError"/>.</returns>
+        public static OperationStatusWithError StatusWithError(this IOperation operation)
+        {
+            return operation.Status == OperationStatus.NotStarted
+                ? OperationStatusWithError.NotStarted
+                : operation.Status == OperationStatus.InProgress
+                    ? OperationStatusWithError.InProgress
+                    : operation.Status == OperationStatus.Finished && operation.Exception == null
+                        ? OperationStatusWithError.Success
+                        : OperationStatusWithError.Failed;
+        }
     }
 }
