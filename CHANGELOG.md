@@ -1,3 +1,6 @@
+# 0.11.0
+- MicroElements.Metadata updated to 4.3.0
+
 # 0.10.0
 - New: OperationManager Tracing added (supports OpenTelemetry with 'MicroElements.Processing' source name).
 - Tracer added to OperationExecutionContext to have ability trace children operation activities
