@@ -1,6 +1,8 @@
 ﻿// Copyright (c) MicroElements. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using MicroElements.Functional;
+
 namespace MicroElements.Processing.TaskManager
 {
     /// <summary>
@@ -37,16 +39,16 @@ namespace MicroElements.Processing.TaskManager
         }
 
         /// <summary>
-        /// Tries to delete session by session id and returns optional <see cref="Error{TErrorCode}"/>.
+        /// Tries to delete session by session id and returns optional <see cref="Error"/>.
         /// </summary>
         /// <typeparam name="TSessionState">Session state.</typeparam>
         /// <typeparam name="TOperationState">Operation state.</typeparam>
         /// <param name="sessionManager">Source session manager.</param>
         /// <param name="sessionId">SessionId.</param>
         /// <returns>Optional error.</returns>
-        public static IError<ErrorCode>? TryDeleteSession<TSessionState, TOperationState>(this ISessionManager<TSessionState, TOperationState> sessionManager, string sessionId)
+        public static Error<ErrorCode>? TryDeleteSession<TSessionState, TOperationState>(this ISessionManager<TSessionState, TOperationState> sessionManager, string sessionId)
         {
-            return Error.Try(() =>
+            return Error.Try<ErrorCode>(() =>
             {
                 sessionManager.DeleteSession(sessionId);
             });

@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.Serialization;
+using MicroElements.Functional;
 
 namespace MicroElements.Processing.TaskManager
 {
@@ -21,7 +22,7 @@ namespace MicroElements.Processing.TaskManager
         /// Initializes a new instance of the <see cref="SessionManagerException"/> class.
         /// </summary>
         /// <param name="error">Error associated with exception.</param>
-        public SessionManagerException(IError<ErrorCode> error)
+        public SessionManagerException(Error<ErrorCode> error)
             : base(error)
         {
         }

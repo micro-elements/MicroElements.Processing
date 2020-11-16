@@ -1,3 +1,8 @@
+# 0.12.0
+- MicroElements.Functional updated to 1.5.0
+- MicroElements.Metadata updated to 4.6.0
+- MicroElements.Data updated to 1.1.0
+
 # 0.11.0
 - MicroElements.Metadata updated to 4.3.0
 
