@@ -38,6 +38,7 @@ namespace MicroElements.Processing.TaskManager
         /// Gets or sets new state for operation.
         /// </summary>
         [MaybeNull]
+        [AllowNull]
         public TOperationState NewState { get; set; }
 
         /// <summary>
@@ -57,6 +58,7 @@ namespace MicroElements.Processing.TaskManager
             Operation = operation;
             Cancellation = cancellation;
             Tracer = tracer;
+            NewState = default;
         }
     }
 }

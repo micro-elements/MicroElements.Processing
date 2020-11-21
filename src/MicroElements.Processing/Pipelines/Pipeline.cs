@@ -11,24 +11,6 @@ using MicroElements.Processing.Common;
 namespace MicroElements.Processing.Pipelines
 {
     /// <summary>
-    /// Represents typed dataflow pipeline.
-    /// </summary>
-    /// <typeparam name="T">Data type.</typeparam>
-    public interface IPipeline<T>
-    {
-        /// <summary>
-        /// Pipeline input.
-        /// </summary>
-        ITargetBlock<T> Input { get; }
-
-        /// <summary>
-        /// Complete input and wait all blocks completion.
-        /// </summary>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        Task CompleteAndWait();
-    }
-
-    /// <summary>
     /// Pipeline for type <typeparamref name="T"/>.
     /// </summary>
     /// <typeparam name="T">Input pipeline type.</typeparam>
@@ -39,8 +21,11 @@ namespace MicroElements.Processing.Pipelines
         /// <inheritdoc/>
         public ITargetBlock<T> Input { get; }
 
-        internal ISourceBlock<T> Last => (ISourceBlock<T>) _blocks.Last();
+        internal ISourceBlock<T> Last => (ISourceBlock<T>)_blocks.Last();
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Pipeline{T}"/> class.
+        /// </summary>
         public Pipeline()
         {
             Input = new BufferBlock<T>();
@@ -54,6 +39,10 @@ namespace MicroElements.Processing.Pipelines
             return GetPipelineCompletion();
         }
 
+        /// <summary>
+        /// Gets pipeline completion task.
+        /// </summary>
+        /// <returns>Pipeline completion task.</returns>
         public Task GetPipelineCompletion()
         {
             Task[] completionTasks = _blocks.Select(block => block.Completion).ToArray();
@@ -61,16 +50,15 @@ namespace MicroElements.Processing.Pipelines
             return pipelineCompletionTask;
         }
 
-        private static StepSettings StepSettings(Action<StepSettings>? configure)
-        {
-            var settings = new StepSettings();
-            configure?.Invoke(settings);
-            return settings;
-        }
-
+        /// <summary>
+        /// Adds new step to pipeline.
+        /// </summary>
+        /// <param name="step">Async step function.</param>
+        /// <param name="configure">Optional step configure action.</param>
+        /// <returns>The same pipeline for chaining.</returns>
         public Pipeline<T> AddStep(Func<T, Task<T>> step, Action<StepSettings>? configure = null)
         {
-            var settings = StepSettings(configure);
+            var settings = CreateAndConfigureStepSettings(configure);
 
             var transformBlock = new TransformBlock<T, T>(step, settings.ExecutionOptions);
             Last.LinkTo(transformBlock, settings.LinkOptions);
@@ -78,9 +66,15 @@ namespace MicroElements.Processing.Pipelines
             return this;
         }
 
+        /// <summary>
+        /// Adds new step to pipeline.
+        /// </summary>
+        /// <param name="step">Step action.</param>
+        /// <param name="configure">Optional step configure action.</param>
+        /// <returns>The same pipeline for chaining.</returns>
         public Pipeline<T> AddStep(Action<T> step, Action<StepSettings>? configure = null)
         {
-            var settings = StepSettings(configure);
+            var settings = CreateAndConfigureStepSettings(configure);
 
             var actionBlock = new ActionBlock<T>(step, settings.ExecutionOptions);
             Last.LinkTo(actionBlock, settings.LinkOptions);
@@ -88,35 +82,27 @@ namespace MicroElements.Processing.Pipelines
             return this;
         }
 
+        /// <summary>
+        /// Adds new step to pipeline.
+        /// </summary>
+        /// <param name="step">Async step action.</param>
+        /// <param name="configure">Optional step configure action.</param>
+        /// <returns>The same pipeline for chaining.</returns>
         public Pipeline<T> AddStep(Func<T, Task> step, Action<StepSettings>? configure = null)
         {
-            var settings = StepSettings(configure);
+            var settings = CreateAndConfigureStepSettings(configure);
 
             var actionBlock = new ActionBlock<T>(step, settings.ExecutionOptions);
             Last.LinkTo(actionBlock, settings.LinkOptions);
             _blocks.Add(actionBlock);
             return this;
         }
-    }
 
-    public class StepSettings
-    {
-        public ExecutionDataflowBlockOptions ExecutionOptions { get; } = new ExecutionDataflowBlockOptions()
+        private static StepSettings CreateAndConfigureStepSettings(Action<StepSettings>? configure)
         {
-            MaxDegreeOfParallelism = 1,
-        };
-
-        public DataflowLinkOptions LinkOptions { get; } = new DataflowLinkOptions()
-        {
-            PropagateCompletion = true,
-        };
-
-        /// <summary>Gets the maximum number of messages that may be processed by the block concurrently.</summary>
-        public int MaxDegreeOfParallelism
-        {
-            get { return ExecutionOptions.MaxDegreeOfParallelism; }
-            set { ExecutionOptions.MaxDegreeOfParallelism = value; }
+            var settings = new StepSettings();
+            configure?.Invoke(settings);
+            return settings;
         }
-
     }
 }

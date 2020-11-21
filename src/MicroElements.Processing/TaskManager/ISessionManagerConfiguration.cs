@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) MicroElements. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System;
 
 namespace MicroElements.Processing.TaskManager
 {
@@ -18,7 +21,7 @@ namespace MicroElements.Processing.TaskManager
         int MaxConcurrencyLevel { get; }
 
         /// <summary>
-        /// Single session time to live in cache.
+        /// Gets session time to live in cache (for one session).
         /// Format: [-][d.]hh:mm:ss.
         /// </summary>
         TimeSpan SessionCacheTimeToLive { get; }

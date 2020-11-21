@@ -22,12 +22,18 @@ namespace MicroElements.Processing.TaskManager
         {
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Initializes a new instance of the <see cref="OperationManagerException"/> class.
+        /// </summary>
         public OperationManagerException()
         {
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Initializes a new instance of the <see cref="OperationManagerException"/> class.
+        /// </summary>
+        /// <param name="info">SerializationInfo.</param>
+        /// <param name="context">StreamingContext.</param>
         protected OperationManagerException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {

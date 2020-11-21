@@ -1,7 +1,11 @@
 ﻿// Copyright (c) MicroElements. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#pragma warning disable SA1402 // File may only contain a single type
+
 using System;
+using System.Diagnostics.CodeAnalysis;
+using MicroElements.Functional;
 using MicroElements.Metadata;
 using NodaTime;
 
@@ -20,6 +24,16 @@ namespace MicroElements.Processing.TaskManager
         public OperationId Id { get; }
 
         /// <inheritdoc />
+        [NotNull]
+        public TOperationState State { get; }
+
+        /// <inheritdoc />
+        public Type StateType => typeof(TOperationState);
+
+        /// <inheritdoc />
+        public object StateUntyped => State;
+
+        /// <inheritdoc />
         public OperationStatus Status { get; }
 
         /// <inheritdoc />
@@ -27,15 +41,6 @@ namespace MicroElements.Processing.TaskManager
 
         /// <inheritdoc />
         public LocalDateTime? FinishedAt { get; }
-
-        /// <inheritdoc />
-        public Type StateType => typeof(TOperationState);
-
-        /// <inheritdoc />
-        public object? StateUntyped => State;
-
-        /// <inheritdoc />
-        public TOperationState State { get; }
 
         /// <inheritdoc />
         public Exception? Exception { get; }
@@ -52,17 +57,19 @@ namespace MicroElements.Processing.TaskManager
         /// <param name="metadata">Optional metadata.</param>
         public Operation(
             OperationId id,
-            TOperationState state,
+            [DisallowNull] TOperationState state,
             OperationStatus status,
             LocalDateTime? startedAt,
             LocalDateTime? finishedAt,
             Exception? exception,
             IPropertyContainer? metadata)
         {
+            state.AssertArgumentNotNull(nameof(state));
+
             Id = id;
             State = state;
-
             Status = status;
+
             StartedAt = startedAt;
             FinishedAt = finishedAt;
             Exception = exception;
@@ -92,14 +99,19 @@ namespace MicroElements.Processing.TaskManager
         /// <param name="state">Initial operation state.</param>
         /// <param name="metadata">Optional metadata.</param>
         /// <returns>Created operation.</returns>
-        public static IOperation<TOperationState> CreateNotStarted<TOperationState>(OperationId id, TOperationState state, IPropertyContainer? metadata = null)
-            => new Operation<TOperationState>(
-            id: id,
-            state: state,
-            status: OperationStatus.NotStarted,
-            startedAt: default,
-            finishedAt: default,
-            exception: null,
-            metadata: metadata);
+        public static IOperation<TOperationState> CreateNotStarted<TOperationState>(
+            OperationId id,
+            [DisallowNull] TOperationState state,
+            IPropertyContainer? metadata = null)
+        {
+            return new Operation<TOperationState>(
+                id: id,
+                state: state,
+                status: OperationStatus.NotStarted,
+                startedAt: default,
+                finishedAt: default,
+                exception: null,
+                metadata: metadata);
+        }
     }
 }

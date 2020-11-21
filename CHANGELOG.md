@@ -1,3 +1,8 @@
+# 1.0.0-rc.1
+- MicroElements dependencies updated to latest
+- Nullable annotations added
+- All code documented
+
 # 0.12.0
 - MicroElements.Functional updated to 1.5.0
 - MicroElements.Metadata updated to 4.6.0

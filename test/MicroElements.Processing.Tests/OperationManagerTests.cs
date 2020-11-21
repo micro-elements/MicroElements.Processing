@@ -61,13 +61,15 @@ namespace MicroElements.Processing.Tests
 
             IOperation<TaskState> operation = operationManager.CreateOperation("1", new TaskState() { Number = 1 });
 
-            operationManager.UpdateOperation("1", operation.With(status: OperationStatus.Finished, state: new TaskState() {Number = 1, Result = 2}));
+            operationManager.UpdateOperation("1", operation
+                .With(status: OperationStatus.Finished)
+                .WithState(state: new TaskState() {Number = 1, Result = 2}));
 
             operationManager
                 .GetOperations()
                 .Should().HaveCount(1);
 
-            var updated = operationManager.GetOperation("1");
+            var updated = operationManager.GetOperation("1")!;
             updated.Id.Should().Be(new OperationId("1"));
             updated.State.Result.Should().Be(2);
             updated.Status.Should().Be(OperationStatus.Finished);
@@ -77,7 +79,7 @@ namespace MicroElements.Processing.Tests
         public void update_operation_should_fail()
         {
             var operationManager = CreateOperationManager();
-            Action action = ()=>operationManager.UpdateOperation("1", updatedOperation: null);
+            Action action = () => operationManager.UpdateOperation("1", updatedOperation: null!);
             action.Should().Throw<ArgumentNullException>();
         }
 
@@ -124,7 +126,7 @@ namespace MicroElements.Processing.Tests
             var session = operationManager.SessionWithOperations;
             session.Status.Should().Be(OperationStatus.Finished);
 
-            var operation = operationManager.GetOperation(new OperationId("2"));
+            var operation = operationManager.GetOperation(new OperationId("2"))!;
             operation.State.Result.Should().Be(4);
 
             var metrics = session.GetMetrics();
@@ -154,7 +156,7 @@ namespace MicroElements.Processing.Tests
             var session = operationManager.SessionWithOperations;
             session.Status.Should().Be(OperationStatus.Finished);
 
-            var operation = operationManager.GetOperation(new OperationId("2"));
+            var operation = operationManager.GetOperation(new OperationId("2"))!;
             operation.State.Result.Should().Be(4);
 
             var metrics = session.GetMetrics();

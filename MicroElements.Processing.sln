@@ -16,13 +16,17 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.travis.yml = .travis.yml
 		CHANGELOG.md = CHANGELOG.md
 		common.props = common.props
+		src\Directory.Build.props = src\Directory.Build.props
 		README.md = README.md
+		src\stylecop.json = src\stylecop.json
+		src\stylecop.props = src\stylecop.props
+		src\stylecop.ruleset = src\stylecop.ruleset
 		version.props = version.props
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sandbox", "sandbox", "{64F85ECE-AA13-4271-B144-FE63B3299434}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicroElements.Processing.Sandbox", "sandbox\MicroElements.Processing.Sandbox\MicroElements.Processing.Sandbox.csproj", "{6BC04110-E03B-4548-A05A-BCD643C57BE7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MicroElements.Processing.Sandbox", "sandbox\MicroElements.Processing.Sandbox\MicroElements.Processing.Sandbox.csproj", "{6BC04110-E03B-4548-A05A-BCD643C57BE7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

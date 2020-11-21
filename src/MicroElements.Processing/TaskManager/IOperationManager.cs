@@ -84,7 +84,7 @@ namespace MicroElements.Processing.TaskManager
         /// <param name="state">Initial operation state.</param>
         /// <param name="metadata">Optional metadata.</param>
         /// <returns>Created operation.</returns>
-        IOperation<TOperationState> CreateOperation(OperationId operationId, TOperationState state, IPropertyContainer? metadata = null);
+        IOperation<TOperationState> CreateOperation(OperationId operationId, [DisallowNull] TOperationState state, IPropertyContainer? metadata = null);
 
         /// <summary>
         /// Updates operation.

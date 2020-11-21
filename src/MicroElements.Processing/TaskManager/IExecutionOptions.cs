@@ -37,12 +37,12 @@ namespace MicroElements.Processing.TaskManager
         /// <summary>
         /// Gets executor for operations.
         /// </summary>
-        IOperationExecutorExtended<TSessionState, TOperationState> ExecutorExtended { get; }
+        IOperationExecutorExtended<TSessionState, TOperationState>? ExecutorExtended { get; }
 
         /// <summary>
         /// Gets simple executor for operations.
         /// </summary>
-        IOperationExecutor<TSessionState, TOperationState> Executor { get; }
+        IOperationExecutor<TSessionState, TOperationState>? Executor { get; }
 
         /// <summary>
         /// Gets action fired on session finished.
@@ -72,10 +72,10 @@ namespace MicroElements.Processing.TaskManager
         public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
 
         /// <inheritdoc />
-        public IOperationExecutorExtended<TSessionState, TOperationState> ExecutorExtended { get; set; }
+        public IOperationExecutorExtended<TSessionState, TOperationState>? ExecutorExtended { get; set; }
 
         /// <inheritdoc />
-        public IOperationExecutor<TSessionState, TOperationState> Executor { get; set; }
+        public IOperationExecutor<TSessionState, TOperationState>? Executor { get; set; }
 
         /// <inheritdoc />
         public Action<ISession<TSessionState, TOperationState>>? OnSessionFinished { get; set; }

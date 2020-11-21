@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using MicroElements.Functional;
 using MicroElements.Metadata;
@@ -41,7 +42,6 @@ namespace MicroElements.Processing.TaskManager
         /// <typeparam name="TSessionState">Session state.</typeparam>
         /// <param name="source">Source session.</param>
         /// <param name="id">New session id.</param>
-        /// <param name="state">New session state.</param>
         /// <param name="status">New session status.</param>
         /// <param name="startedAt">New startedAt.</param>
         /// <param name="finishedAt">New finishedAt.</param>
@@ -52,7 +52,6 @@ namespace MicroElements.Processing.TaskManager
         public static ISession<TSessionState> With<TSessionState>(
             this ISession<TSessionState> source,
             OperationId? id = null,
-            TSessionState state = default,
             OperationStatus? status = null,
             LocalDateTime? startedAt = null,
             LocalDateTime? finishedAt = null,
@@ -60,9 +59,8 @@ namespace MicroElements.Processing.TaskManager
             IPropertyContainer? metadata = null,
             IExecutionOptions? executionOptions = null)
         {
-            var sessionOperation = source.Operation.With(
+            var sessionOperation = source.Operation.With<TSessionState>(
                     id: id,
-                    state: state,
                     status: status,
                     startedAt: startedAt,
                     finishedAt: finishedAt,
@@ -74,6 +72,26 @@ namespace MicroElements.Processing.TaskManager
                 messages: source.Messages,
                 getOperations: source.GetOperations,
                 executionOptions: executionOptions ?? source.ExecutionOptions);
+        }
+
+        /// <summary>
+        /// Creates new instance of <see cref="ISession{TSessionState}"/> with changes.
+        /// </summary>
+        /// <typeparam name="TSessionState">Session state.</typeparam>
+        /// <param name="source">Source session.</param>
+        /// <param name="state">New session state.</param>
+        /// <returns>New instance of session.</returns>
+        public static ISession<TSessionState> WithState<TSessionState>(
+            this ISession<TSessionState> source,
+            [DisallowNull] TSessionState state)
+        {
+            var sessionOperation = source.Operation.WithState(state: state);
+
+            return new LazySession<TSessionState>(
+                sessionOperation: sessionOperation,
+                messages: source.Messages,
+                getOperations: source.GetOperations,
+                executionOptions: source.ExecutionOptions);
         }
 
         /// <summary>

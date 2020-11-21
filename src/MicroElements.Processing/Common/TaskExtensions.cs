@@ -13,7 +13,7 @@ namespace MicroElements.Processing.Common
     internal static class TaskExtensions
     {
         /// <summary>
-        /// This impl is better than Task.WhenAll because it avoids meaningful exception being swallowed when awaiting on error
+        /// This impl is better than Task.WhenAll because it avoids meaningful exception being swallowed when awaiting on error.
         /// </summary>
         public static Task AwaitableWhenAll(this Task[] tasks)
         {
@@ -26,7 +26,7 @@ namespace MicroElements.Processing.Common
                 {
                     if (t.IsFaulted)
                     {
-                        tcs.SetException(t.UnwrapException());
+                        tcs.SetException(t.UnwrapException() !);
                     }
                     else if (t.IsCanceled)
                     {

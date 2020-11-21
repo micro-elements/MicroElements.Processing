@@ -44,14 +44,14 @@ namespace MicroElements.Processing.TaskManager.Metrics
             MainActivity = ActivitySource.StartActivity(
                 name: "Session",
                 kind: ActivityKind.Internal,
-                parentId: null,
-                tags: tags)!;
+                parentId: null!,
+                tags: tags);
         }
 
         /// <inheritdoc />
         public Activity? StartActivity(string activityName, IEnumerable<KeyValuePair<string, object?>>? tags = null)
         {
-            return ActivitySource.StartActivity(activityName, ActivityKind.Internal, parentId: this.GetMainActivityId(), tags: tags);
+            return ActivitySource.StartActivity(activityName, ActivityKind.Internal, parentId: this.GetMainActivityId() !, tags: tags);
         }
 
         /// <inheritdoc />

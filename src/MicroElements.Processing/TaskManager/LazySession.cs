@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using MicroElements.Functional;
 using MicroElements.Metadata;
 using NodaTime;
@@ -38,9 +39,10 @@ namespace MicroElements.Processing.TaskManager
         public Type StateType => Operation.StateType;
 
         /// <inheritdoc />
-        public object? StateUntyped => Operation.StateUntyped;
+        public object StateUntyped => Operation.StateUntyped;
 
         /// <inheritdoc />
+        [NotNull]
         public TSessionState State => Operation.State;
 
         /// <inheritdoc />

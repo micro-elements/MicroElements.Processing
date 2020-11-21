@@ -1,4 +1,7 @@
-﻿namespace MicroElements.Processing.TaskManager
+﻿// Copyright (c) MicroElements. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+namespace MicroElements.Processing.TaskManager
 {
     /// <summary>
     /// Represents alternative operation status where <see cref="OperationStatus.Finished"/> status splitted to <see cref="Success"/> and <see cref="Failed"/>.

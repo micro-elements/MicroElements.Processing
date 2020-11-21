@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using MicroElements.Functional;
 
 namespace MicroElements.Processing.TaskManager.Metrics
 {
@@ -27,6 +28,8 @@ namespace MicroElements.Processing.TaskManager.Metrics
         /// <param name="tags">Optional activity tags.</param>
         public ChildTracer(ITracer parentTracer, string activityName, IReadOnlyCollection<KeyValuePair<string, object?>>? tags = null)
         {
+            parentTracer.AssertArgumentNotNull(nameof(parentTracer));
+
             ActivitySource = parentTracer.ActivitySource;
             MainActivity = parentTracer.StartActivity(activityName, tags);
         }
@@ -34,7 +37,11 @@ namespace MicroElements.Processing.TaskManager.Metrics
         /// <inheritdoc />
         public Activity? StartActivity(string activityName, IEnumerable<KeyValuePair<string, object?>>? tags = null)
         {
-            return ActivitySource.StartActivity(activityName, ActivityKind.Internal, parentId: this.GetMainActivityId(), tags: tags);
+            return ActivitySource.StartActivity(
+                activityName,
+                ActivityKind.Internal,
+                parentId: this.GetMainActivityId() !,
+                tags: tags);
         }
 
         /// <inheritdoc />

@@ -3,7 +3,6 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
-using MicroElements.Functional;
 using MicroElements.Metadata;
 using NodaTime;
 using NodaTime.Extensions;
@@ -22,7 +21,6 @@ namespace MicroElements.Processing.TaskManager
         /// <param name="operation">Source operation.</param>
         /// <param name="id">New id.</param>
         /// <param name="status">New status.</param>
-        /// <param name="state">New state.</param>
         /// <param name="startedAt">New startedAt.</param>
         /// <param name="finishedAt">New finishedAt.</param>
         /// <param name="exception">New exception.</param>
@@ -32,22 +30,40 @@ namespace MicroElements.Processing.TaskManager
             this IOperation<TOperationState> operation,
             OperationId? id = default,
             OperationStatus? status = default,
-            [AllowNull] TOperationState state = default,
             LocalDateTime? startedAt = default,
             LocalDateTime? finishedAt = default,
             Exception? exception = null,
             IPropertyContainer? metadata = null)
         {
-            return new Operation<TOperationState>
-            (
+            return new Operation<TOperationState>(
                 id: id ?? operation.Id,
-                state: state.IsNotNull() ? state : operation.State,
+                state: operation.State,
                 status: status ?? operation.Status,
                 startedAt: startedAt ?? operation.StartedAt,
                 finishedAt: finishedAt ?? operation.FinishedAt,
                 exception: exception ?? operation.Exception,
-                metadata: metadata ?? operation.Metadata
-            );
+                metadata: metadata ?? operation.Metadata);
+        }
+
+        /// <summary>
+        /// Creates new instance of operation with new state.
+        /// </summary>
+        /// <param name="operation">Source operation.</param>
+        /// <param name="state">New state.</param>
+        /// <typeparam name="TOperationState">Operation state.</typeparam>
+        /// <returns>New instance of operation with new state.</returns>
+        public static Operation<TOperationState> WithState<TOperationState>(
+            this IOperation<TOperationState> operation,
+            [DisallowNull] TOperationState state)
+        {
+            return new Operation<TOperationState>(
+                id: operation.Id,
+                state: state,
+                status: operation.Status,
+                startedAt: operation.StartedAt,
+                finishedAt: operation.FinishedAt,
+                exception: operation.Exception,
+                metadata: operation.Metadata);
         }
 
         /// <summary>

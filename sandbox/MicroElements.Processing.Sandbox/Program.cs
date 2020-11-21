@@ -14,7 +14,7 @@ public class Program
         using var tracerProvider = Sdk.CreateTracerProviderBuilder()
             .SetSampler(new AlwaysOnSampler())
             .AddSource(MyActivitySource.Name)
-            .AddConsoleExporter(options => options.DisplayAsJson = true)
+            .AddConsoleExporter()
             .Build();
 
         using (Activity? sayHelloActivity = MyActivitySource.StartActivity("SayHello"))
@@ -23,7 +23,7 @@ public class Program
             sayHelloActivity?.SetTag("bar", "Hello, World!");
             await Task.Delay(1000);
 
-            using var inner = MyActivitySource.StartActivity("Inner", ActivityKind.Internal, parentId: sayHelloActivity.Id);
+            using var inner = MyActivitySource.StartActivity("Inner", ActivityKind.Internal, parentId: sayHelloActivity?.Id!);
             await Task.Delay(1000);
         }
     }

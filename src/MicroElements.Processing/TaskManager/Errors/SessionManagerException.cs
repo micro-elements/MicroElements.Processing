@@ -13,11 +13,6 @@ namespace MicroElements.Processing.TaskManager
     [Serializable]
     public class SessionManagerException : ExceptionWithError<ErrorCode>
     {
-        /// <inheritdoc />
-        public SessionManagerException()
-        {
-        }
-
         /// <summary>
         /// Initializes a new instance of the <see cref="SessionManagerException"/> class.
         /// </summary>
@@ -27,7 +22,18 @@ namespace MicroElements.Processing.TaskManager
         {
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SessionManagerException"/> class.
+        /// </summary>
+        public SessionManagerException()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SessionManagerException"/> class.
+        /// </summary>
+        /// <param name="info">SerializationInfo.</param>
+        /// <param name="context">StreamingContext.</param>
         protected SessionManagerException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {

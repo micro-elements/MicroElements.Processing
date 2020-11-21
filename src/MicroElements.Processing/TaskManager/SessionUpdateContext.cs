@@ -21,12 +21,13 @@ namespace MicroElements.Processing.TaskManager
         /// Gets or sets new state for session.
         /// </summary>
         [MaybeNull]
-        public TSessionState NewState { internal get; set; }
+        [AllowNull]
+        public TSessionState NewState { get; set; } = default!;
 
         /// <summary>
         /// Gets or sets new metadata for session.
         /// </summary>
-        public IPropertyContainer? NewMetadata { internal get; set; }
+        public IPropertyContainer? NewMetadata { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SessionUpdateContext{TSessionState}"/> class.
