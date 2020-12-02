@@ -249,7 +249,22 @@ namespace MicroElements.Processing.Tests
     {
         public int Number { get; set; }
 
-        public int Result { get; set; }
+        public int? Result { get; set; }
+
+        public TaskState()
+        {
+        }
+
+        public TaskState(int number, int? result = null)
+        {
+            Number = number;
+            Result = result;
+        }
+
+        public TaskState WithResult(int result)
+        {
+            return new TaskState(Number, result);
+        }
     }
 
     public class MultiplyByTwo : IOperationExecutor<SessionState, TaskState>
@@ -274,33 +289,17 @@ namespace MicroElements.Processing.Tests
     public class MultiplyByTwoExt : IOperationExecutorExtended<SessionState, TaskState>
     {
         /// <inheritdoc />
-        public async Task<IOperation<TaskState>> ExecuteAsync(ISession<SessionState> session, IOperation<TaskState> operation, CancellationToken cancellation = default)
-        {
-            // Sample of mutable state
-            operation.State.Result = operation.State.Number * 2;
-
-            // long work imitation
-            await Task.Delay(1000, cancellation);
-
-            // Session can be accessed
-            session.Messages.Add(new Message($"Input: {operation.State.Number}, Result: {operation.State.Result}"));
-
-            // the same operation
-            return operation;
-        }
-
-        /// <inheritdoc />
         public async Task ExecuteAsync(OperationExecutionContext<SessionState, TaskState> context)
         {
             var operation = context.Operation;
-            // Sample of mutable state
-            operation.State.Result = operation.State.Number * 2;
 
-            context.NewState = operation.State;
+            // Sample of immutable state
+            context.NewState = operation.State.WithResult(operation.State.Number * 2);
 
             // long work imitation
             await Task.Delay(100, context.Cancellation);
 
+            // example of child activity
             using (context.Tracer.StartActivity("db"))
             {
                 await Task.Delay(200);

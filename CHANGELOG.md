@@ -1,4 +1,4 @@
-# 1.0.0-rc.1
+# 1.0.0
 - MicroElements dependencies updated to latest
 - Nullable annotations added
 - All code documented
