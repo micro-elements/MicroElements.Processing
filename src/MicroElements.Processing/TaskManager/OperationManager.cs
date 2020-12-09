@@ -49,21 +49,24 @@ namespace MicroElements.Processing.TaskManager
 
             public SessionTracer SessionTracer { get; }
 
-            public Task<ISession<TSessionState, TOperationState>> SessionCompletionTask { get; }
+            public Task<ISession<TSessionState, TOperationState>> SessionCompletionTask { get; private set; }
 
             public Runtime(
                 IExecutionOptions<TSessionState, TOperationState> options,
                 CancellationTokenSource cts,
                 Pipeline<IOperation<TOperationState>> pipeline,
-                SessionTracer sessionTracer,
-                IEnumerable<IOperation<TOperationState>> operations,
-                Func<Task, ISession<TSessionState, TOperationState>> onSessionFinished)
+                SessionTracer sessionTracer)
             {
                 Options = options;
                 Cts = cts;
                 Pipeline = pipeline;
                 SessionTracer = sessionTracer;
+            }
 
+            public void Start(
+                IEnumerable<IOperation<TOperationState>> operations,
+                Func<Task, ISession<TSessionState, TOperationState>> onSessionFinished)
+            {
                 // Add operations to pipeline
                 Pipeline.Input.PostMany(operations);
 
@@ -246,9 +249,11 @@ namespace MicroElements.Processing.TaskManager
             var sessionTracer = new SessionTracer(_logger, sessionTags);
 
             var operations = GetOperations();
-            _runtime = new Runtime(options, cts, pipeline, sessionTracer, operations, OnSessionFinished);
 
+            _runtime = new Runtime(options, cts, pipeline, sessionTracer);
             _logger.LogInformation($"Session started. SessionId: {_session.Id}.");
+
+            _runtime.Start(operations, OnSessionFinished);
         }
 
         /// <inheritdoc />

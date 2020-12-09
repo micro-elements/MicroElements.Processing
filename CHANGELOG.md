@@ -1,3 +1,6 @@
+# 1.1.0
+- Fixed OperationManager.Start (sometime ProcessOperation can be started before Runtime fully initialized)
+
 # 1.0.0
 - MicroElements dependencies updated to latest
 - Nullable annotations added
