@@ -77,7 +77,7 @@ namespace MicroElements.Processing.TaskManager
 
             // Add SessionManager metadata to OperationManager
             var mergedMetadata = new MutablePropertyContainer(_metadata);
-            mergedMetadata.AddRange(operationManager.Metadata);
+            mergedMetadata.AddValues(operationManager.Metadata);
             operationManager.UpdateSession(context => context.NewMetadata = mergedMetadata);
 
             SessionStorage.Set(operationManager);

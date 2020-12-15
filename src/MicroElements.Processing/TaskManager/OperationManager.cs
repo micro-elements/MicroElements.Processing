@@ -49,7 +49,7 @@ namespace MicroElements.Processing.TaskManager
 
             public SessionTracer SessionTracer { get; }
 
-            public Task<ISession<TSessionState, TOperationState>> SessionCompletionTask { get; private set; }
+            public Task<ISession<TSessionState, TOperationState>> SessionCompletionTask { get; private set; } = null!;
 
             public Runtime(
                 IExecutionOptions<TSessionState, TOperationState> options,
