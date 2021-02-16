@@ -13,7 +13,7 @@ namespace MicroElements.Processing.TaskManager
     /// Represents operation manager (base interface).
     /// Operation manager manages many operations in parallel.
     /// </summary>
-    public interface IOperationManager : IMetadataProvider
+    public interface IOperationManager : IManualMetadataProvider
     {
         /// <summary>
         /// Gets session manager that owns this operation manager.

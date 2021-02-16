@@ -11,7 +11,7 @@ namespace MicroElements.Processing.TaskManager
     /// <summary>
     /// Represents single operation (task, unit of work).
     /// </summary>
-    public interface IOperation : IMetadataProvider
+    public interface IOperation : IManualMetadataProvider
     {
         /// <summary>
         /// Gets operation id.

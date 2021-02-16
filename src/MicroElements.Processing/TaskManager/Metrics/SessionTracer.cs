@@ -30,9 +30,11 @@ namespace MicroElements.Processing.TaskManager.Metrics
         /// Initializes a new instance of the <see cref="SessionTracer"/> class.
         /// </summary>
         /// <param name="logger">Logger to log activities.</param>
+        /// <param name="activityName">Activity name.</param>
         /// <param name="tags">Session tags.</param>
         public SessionTracer(
             ILogger logger,
+            string activityName = "Session",
             IReadOnlyCollection<KeyValuePair<string, object?>>? tags = null)
         {
             ActivitySource = Processing;
@@ -42,7 +44,7 @@ namespace MicroElements.Processing.TaskManager.Metrics
 
             // Main activity.
             MainActivity = ActivitySource.StartActivity(
-                name: "Session",
+                name: activityName,
                 kind: ActivityKind.Internal,
                 parentId: null!,
                 tags: tags);

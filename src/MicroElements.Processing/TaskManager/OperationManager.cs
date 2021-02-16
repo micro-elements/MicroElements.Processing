@@ -246,7 +246,7 @@ namespace MicroElements.Processing.TaskManager
                 .AddStep(operation => OnOperationFinished(operation));
 
             var sessionTags = new[] { new KeyValuePair<string, object?>("SessionId", _session.Id.ToString()), };
-            var sessionTracer = new SessionTracer(_logger, sessionTags);
+            var sessionTracer = new SessionTracer(_logger, "Session", sessionTags);
 
             var operations = GetOperations();
 
