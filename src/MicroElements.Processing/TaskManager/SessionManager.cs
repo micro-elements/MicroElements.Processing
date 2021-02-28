@@ -34,7 +34,7 @@ namespace MicroElements.Processing.TaskManager
         public SessionManager(
             ISessionManagerConfiguration configuration,
             ILoggerFactory loggerFactory,
-            ISessionStorage<TSessionState, TOperationState>? sessionStorage = null,
+            ISessionStorage<TSessionState, TOperationState> sessionStorage,
             Action<IServiceContainer>? initServices = null,
             IPropertyContainer? metadata = null)
         {
@@ -42,9 +42,9 @@ namespace MicroElements.Processing.TaskManager
             LoggerFactory = loggerFactory.AssertArgumentNotNull(nameof(loggerFactory));
             SessionStorage = sessionStorage.AssertArgumentNotNull(nameof(sessionStorage));
 
-            _metadata = new MutablePropertyContainer(metadata);
+            _metadata = new MutablePropertyContainer(sourceValues: metadata);
 
-            ServiceContainer serviceContainer = new ServiceContainer();
+            var serviceContainer = new ServiceContainer();
             serviceContainer.AddService(typeof(ILoggerFactory), LoggerFactory);
             initServices?.Invoke(serviceContainer);
             Services = serviceContainer;
@@ -77,10 +77,10 @@ namespace MicroElements.Processing.TaskManager
 
             // Add SessionManager metadata to OperationManager
             var mergedMetadata = new MutablePropertyContainer(_metadata);
-            mergedMetadata.AddValues(operationManager.Metadata);
+            mergedMetadata.SetValues(operationManager.Metadata);
             operationManager.UpdateSession(context => context.NewMetadata = mergedMetadata);
 
-            SessionStorage.Set(operationManager);
+            SessionStorage.Set(operationManager.Session.Id.Value, operationManager);
 
             return operationManager;
         }

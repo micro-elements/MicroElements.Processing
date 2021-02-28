@@ -15,8 +15,9 @@ namespace MicroElements.Processing.TaskManager
         /// <summary>
         /// Adds <paramref name="operationManager"/> to storage.
         /// </summary>
+        /// <param name="sessionId">Session id.</param>
         /// <param name="operationManager">Operation manager to add.</param>
-        void Set(IOperationManager<TSessionState, TOperationState> operationManager);
+        void Set(string sessionId, IOperationManager<TSessionState, TOperationState> operationManager);
 
         /// <summary>
         /// Gets <see cref="IOperationManager{TSessionState,TOperationState}"/> from storage.

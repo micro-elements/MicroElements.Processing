@@ -27,18 +27,20 @@ namespace MicroElements.Processing.TaskManager
     /// <typeparam name="TOperationState">Operation state.</typeparam>
     public class OperationManager<TSessionState, TOperationState> : IOperationManager<TSessionState, TOperationState>
     {
+        private readonly SemaphoreSlim _updateLock = new SemaphoreSlim(1);
+
         // Initializes in ctor
         private readonly ISessionManager _sessionManager;
         private readonly ILogger _logger;
         private readonly ConcurrentDictionary<OperationId, IOperation<TOperationState>> _operations;
 
+        // Initializes in Start
+        private Runtime? _runtime;
+
         // Replaces on status change
-        private readonly SemaphoreSlim _updateLock = new SemaphoreSlim(1);
         private ISession<TSessionState> _session;
 
-        /// <summary>
-        /// Initializes on <see cref="OperationManager{TSessionState,TOperationState}.Start"/>.
-        /// </summary>
+        // Initializes in Start
         private class Runtime
         {
             public IExecutionOptions<TSessionState, TOperationState> Options { get; }
@@ -51,33 +53,52 @@ namespace MicroElements.Processing.TaskManager
 
             public Task<ISession<TSessionState, TOperationState>> SessionCompletionTask { get; private set; } = null!;
 
+            private readonly Func<Task, ISession<TSessionState, TOperationState>> _onSessionFinished;
+
             public Runtime(
                 IExecutionOptions<TSessionState, TOperationState> options,
                 CancellationTokenSource cts,
                 Pipeline<IOperation<TOperationState>> pipeline,
-                SessionTracer sessionTracer)
+                SessionTracer sessionTracer,
+                Func<Task, ISession<TSessionState, TOperationState>> onSessionFinished)
             {
                 Options = options;
                 Cts = cts;
                 Pipeline = pipeline;
                 SessionTracer = sessionTracer;
+                _onSessionFinished = onSessionFinished;
             }
 
-            public void Start(
-                IEnumerable<IOperation<TOperationState>> operations,
-                Func<Task, ISession<TSessionState, TOperationState>> onSessionFinished)
+            public void Start(IEnumerable<IOperation<TOperationState>> operations)
             {
                 // Add operations to pipeline
                 Pipeline.Input.PostMany(operations);
 
                 // Complete pipeline and create completion task (not awaiting pipeline finished)
-                SessionCompletionTask = Pipeline
-                    .CompleteAndWait()
-                    .ContinueWith(onSessionFinished, TaskContinuationOptions.ExecuteSynchronously);
+                if (Options.SessionType == SessionType.OperationsBatch)
+                {
+                    SessionCompletionTask = Pipeline
+                        .CompleteAndWait()
+                        .ContinueWith(_onSessionFinished, TaskContinuationOptions.ExecuteSynchronously);
+                }
+
+                if (Options.SessionType == SessionType.InfiniteProcess)
+                {
+                    SessionCompletionTask = Task.Delay(Options.SessionTimeout ?? TimeSpan.MaxValue)
+                        .ContinueWith(_onSessionFinished, TaskContinuationOptions.ExecuteSynchronously);
+                }
+            }
+
+            public void StopProcessing()
+            {
+                if (Options.SessionType == SessionType.InfiniteProcess)
+                {
+                    SessionCompletionTask = Pipeline
+                        .CompleteAndWait()
+                        .ContinueWith(_onSessionFinished, TaskContinuationOptions.ExecuteSynchronously);
+                }
             }
         }
-
-        private Runtime? _runtime;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OperationManager{TSessionState, TOperationState}"/> class.
@@ -85,23 +106,30 @@ namespace MicroElements.Processing.TaskManager
         /// <param name="sessionId">Session id.</param>
         /// <param name="sessionState">Initial session state.</param>
         /// <param name="sessionManager">Owner session manager.</param>
+        /// <param name="executionOptions">Optional execution options. Also can be provided in Start method.</param>
         /// <param name="logger">Logger.</param>
         /// <param name="metadata">Optional metadata.</param>
         public OperationManager(
             OperationId sessionId,
             [DisallowNull] TSessionState sessionState,
             ISessionManager<TSessionState, TOperationState> sessionManager,
+            IExecutionOptions<TSessionState, TOperationState>? executionOptions = null,
             ILogger? logger = null,
             IPropertyContainer? metadata = null)
         {
             sessionState.AssertArgumentNotNull(nameof(sessionState));
-            _sessionManager = sessionManager.AssertArgumentNotNull(nameof(sessionManager));
+            sessionManager.AssertArgumentNotNull(nameof(sessionManager));
+
+            _sessionManager = sessionManager;
             _logger = logger ?? GetLoggerFactory().CreateLogger(sessionId.Value);
             _operations = new ConcurrentDictionary<OperationId, IOperation<TOperationState>>();
 
             _session = Operation
                 .CreateNotStarted(sessionId, sessionState, metadata)
                 .ToSession(getOperations: GetOperations);
+
+            if (executionOptions != null)
+                _session = _session.With(executionOptions: executionOptions);
 
             ILoggerFactory GetLoggerFactory() =>
                 (ILoggerFactory?)_sessionManager.Services.GetService(typeof(ILoggerFactory)) ?? NullLoggerFactory.Instance;
@@ -218,29 +246,48 @@ namespace MicroElements.Processing.TaskManager
         }
 
         /// <inheritdoc />
-        public async Task Start(IExecutionOptions<TSessionState, TOperationState> options)
+        public async Task Start(IExecutionOptions<TSessionState, TOperationState>? executionOptions = null)
         {
             if (_runtime != null)
                 throw new OperationManagerException(Errors.SessionIsAlreadyStarted(_session.Id));
 
-            if (options.ExecutorExtended == null && options.Executor == null)
-                throw new ArgumentException($"ExecutionOptions: {nameof(options.ExecutorExtended)} or {nameof(options.Executor)} should be provided.", nameof(options));
-            if (options.ExecutorExtended != null && options.Executor != null)
-                throw new ArgumentException($"ExecutionOptions: Only one of {nameof(options.ExecutorExtended)}, {nameof(options.Executor)} should be provided.", nameof(options));
+            if (_session.ExecutionOptions is IExecutionOptions<TSessionState, TOperationState> sessionExecutionOptions)
+            {
+                // Merge params provided on initialization and on start.
+                executionOptions = new ExecutionOptions<TSessionState, TOperationState>()
+                {
+                    MaxConcurrencyLevel = executionOptions?.MaxConcurrencyLevel ?? sessionExecutionOptions.MaxConcurrencyLevel ?? Environment.ProcessorCount,
+                    SessionTimeout = executionOptions?.SessionTimeout ?? sessionExecutionOptions.SessionTimeout ?? TimeSpan.FromHours(24),
+
+                    Executor = executionOptions?.Executor ?? sessionExecutionOptions.Executor,
+                    ExecutorExtended = executionOptions?.ExecutorExtended ?? sessionExecutionOptions.ExecutorExtended,
+                    OnOperationFinished = executionOptions?.OnOperationFinished ?? sessionExecutionOptions.OnOperationFinished,
+                    OnSessionFinished = executionOptions?.OnSessionFinished ?? sessionExecutionOptions.OnSessionFinished,
+
+                    CancellationToken = executionOptions?.CancellationToken ?? CancellationToken.None,
+                };
+            }
+
+            if (executionOptions == null)
+                throw new ArgumentNullException(nameof(executionOptions), "Provide executionOptions on start or initialization.");
+            if (executionOptions.ExecutorExtended == null && executionOptions.Executor == null)
+                throw new ArgumentException($"ExecutionOptions: {nameof(executionOptions.ExecutorExtended)} or {nameof(executionOptions.Executor)} should be provided.", nameof(executionOptions));
+            if (executionOptions.ExecutorExtended != null && executionOptions.Executor != null)
+                throw new ArgumentException($"ExecutionOptions: Only one of {nameof(executionOptions.ExecutorExtended)}, {nameof(executionOptions.Executor)} should be provided.", nameof(executionOptions));
 
             using var updateLock = await _updateLock.WaitAsyncAndGetLockReleaser();
 
             _session = _session.With(
                 status: OperationStatus.InProgress,
                 startedAt: DateTime.Now.ToLocalDateTime(),
-                executionOptions: options);
+                executionOptions: executionOptions);
 
-            var cts = CreateCancellation(options);
+            var cts = CreateCancellation(executionOptions);
 
             var pipeline = new Pipeline<IOperation<TOperationState>>()
-                .AddStep(ProcessOperation, settings =>
+                .AddStep(operation => ProcessOperation(operation), settings =>
                 {
-                    settings.MaxDegreeOfParallelism = options.MaxConcurrencyLevel;
+                    settings.MaxDegreeOfParallelism = executionOptions.MaxConcurrencyLevel!.Value;
                     settings.ExecutionOptions.CancellationToken = cts.Token;
                 })
                 .AddStep(operation => OnOperationFinished(operation));
@@ -248,12 +295,17 @@ namespace MicroElements.Processing.TaskManager
             var sessionTags = new[] { new KeyValuePair<string, object?>("SessionId", _session.Id.ToString()), };
             var sessionTracer = new SessionTracer(_logger, "Session", sessionTags);
 
-            var operations = GetOperations();
+            _runtime = new Runtime(
+                executionOptions,
+                cts,
+                pipeline,
+                sessionTracer,
+                task => OnSessionFinished(task));
 
-            _runtime = new Runtime(options, cts, pipeline, sessionTracer);
+            // Start session
             _logger.LogInformation($"Session started. SessionId: {_session.Id}.");
-
-            _runtime.Start(operations, OnSessionFinished);
+            var operations = GetOperations();
+            _runtime.Start(operations);
         }
 
         /// <inheritdoc />
@@ -266,7 +318,7 @@ namespace MicroElements.Processing.TaskManager
 
         private static CancellationTokenSource CreateCancellation(IExecutionOptions<TSessionState, TOperationState> options)
         {
-            var timeoutTokenSource = new CancellationTokenSource(options.SessionTimeout);
+            var timeoutTokenSource = new CancellationTokenSource(options.SessionTimeout!.Value);
             if (options.CancellationToken != default)
                 return CancellationTokenSource.CreateLinkedTokenSource(timeoutTokenSource.Token, options.CancellationToken);
             return timeoutTokenSource;
@@ -325,8 +377,10 @@ namespace MicroElements.Processing.TaskManager
                         else if (runtime.Options.ExecutorExtended != null)
                         {
                             var context = new OperationExecutionContext<TSessionState, TOperationState>(_session, operation, runtime.Cts.Token, executionTracer);
+
                             await runtime.Options.ExecutorExtended.ExecuteAsync(context);
-                            if (context.NewState != null)
+
+                            if (context.NewState != null && !ReferenceEquals(context.NewState, operation.State))
                                 resultOperation = operation.WithState(state: context.NewState);
                         }
                     }

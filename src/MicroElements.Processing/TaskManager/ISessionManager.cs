@@ -12,7 +12,7 @@ namespace MicroElements.Processing.TaskManager
     /// SessionManager base interface with no write operations.
     /// Manages many sessions in parallel.
     /// </summary>
-    public interface ISessionManager : IMetadataProvider
+    public interface ISessionManager : IManualMetadataProvider
     {
         /// <summary>
         /// Gets session manager configuration.

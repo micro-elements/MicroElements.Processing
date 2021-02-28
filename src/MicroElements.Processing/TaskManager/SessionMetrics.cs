@@ -14,7 +14,7 @@ namespace MicroElements.Processing.TaskManager
     /// <summary>
     /// Session metrics.
     /// </summary>
-    public class SessionMetrics : IMetadataProvider
+    public class SessionMetrics : IManualMetadataProvider
     {
         private readonly IMutablePropertyContainer _metadata;
 
@@ -316,7 +316,7 @@ namespace MicroElements.Processing.TaskManager
 
                 if (session.ExecutionOptions != null)
                 {
-                    maxConcurrencyLevel = session.ExecutionOptions.MaxConcurrencyLevel;
+                    maxConcurrencyLevel = session.ExecutionOptions.MaxConcurrencyLevel.GetValueOrDefault();
                 }
 
                 speedupRatio = Math.Round(totalExecutionTime / duration.TotalMilliseconds, 2);

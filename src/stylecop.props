@@ -9,8 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <AdditionalFiles Include="$(MSBuildThisFileDirectory)stylecop.json" Link="stylecop.json" />
-    <AdditionalFiles Include="$(MSBuildThisFileDirectory)stylecop.ruleset" Link="stylecop.ruleset" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)stylecop.json" Link="_shared\stylecop.json" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)stylecop.ruleset" Link="_shared\stylecop.ruleset" />
   </ItemGroup>
 
 </Project>

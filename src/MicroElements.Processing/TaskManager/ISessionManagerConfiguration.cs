@@ -32,6 +32,20 @@ namespace MicroElements.Processing.TaskManager
     /// </summary>
     public class SessionManagerConfiguration : ISessionManagerConfiguration
     {
+        /// <summary>
+        /// Creates new configuration instance with default values filled.
+        /// </summary>
+        /// <returns>new configuration instance.</returns>
+        public static SessionManagerConfiguration New()
+        {
+            return new SessionManagerConfiguration()
+            {
+                Id = Guid.NewGuid().ToString(),
+                MaxConcurrencyLevel = Environment.ProcessorCount,
+                SessionCacheTimeToLive = TimeSpan.FromDays(2),
+            };
+        }
+
         /// <inheritdoc />
         public string Id { get; set; } = Guid.NewGuid().ToString();
 

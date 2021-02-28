@@ -37,5 +37,17 @@ namespace MicroElements.Processing.TaskManager
         /// </summary>
         /// <param name="value">Source string.</param>
         public static implicit operator OperationId(string value) => new OperationId(value);
+
+        /// <summary>
+        /// Creates new OperationId in format: 'Name-yyyyMMddHHmmss'.
+        /// </summary>
+        public static OperationId CreateWithTimestamp(string name = "Operation") =>
+            new OperationId($"{name}-{DateTime.Now:yyyyMMddHHmmss}");
+
+        /// <summary>
+        /// Creates new OperationId in format: 'Name-GUID'.
+        /// </summary>
+        public static OperationId CreateWithGuid(string name = "Operation") =>
+            new OperationId($"{name}-{Guid.NewGuid()}");
     }
 }

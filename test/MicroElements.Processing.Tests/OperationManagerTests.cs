@@ -215,17 +215,10 @@ namespace MicroElements.Processing.Tests
 
         private IOperationManager<SessionState, TaskState> CreateOperationManager()
         {
-            var configuration = new SessionManagerConfiguration() {MaxConcurrencyLevel = 4};
-            var sessionStorage =
-                new MemoryCacheStorage<SessionState, TaskState>(configuration, new MemoryCache(new MemoryCacheOptions()));
-            var sessionManager = new SessionManager<SessionState, TaskState>(configuration, LoggerFactory, sessionStorage);
-
-            var operationManager = new OperationManager<SessionState, TaskState>(
-                new OperationId("test"),
-                new SessionState(),
-                sessionManager);
-
-            return sessionManager.AddOperationManager(operationManager);
+            return new SessionBuilder<SessionState, TaskState>()
+                .ConfigureSessionManager(managerConfiguration => managerConfiguration.MaxConcurrencyLevel = 4)
+                .WithLogging(LoggerFactory)
+                .CreateOperationManager(OperationId.CreateWithGuid(), new SessionState());
         }
 
         private void OnSessionFinished(ISession<SessionState, TaskState> obj)

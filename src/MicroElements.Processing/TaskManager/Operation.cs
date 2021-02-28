@@ -74,8 +74,20 @@ namespace MicroElements.Processing.TaskManager
             FinishedAt = finishedAt;
             Exception = exception;
 
-            // immutable metadata
-            Metadata = new PropertyContainer(metadata);
+            if (metadata == null)
+            {
+                // If state is metadata provider itself then use it as operation metadata.
+                if (state is IMetadataProvider stateMetadataProvider &&
+                    stateMetadataProvider.GetInstanceMetadata(autoCreate: false) is { } stateMetadata)
+                    Metadata = stateMetadata.ToReadOnly();
+                else
+                    Metadata = PropertyContainer.Empty;
+            }
+            else
+            {
+                // ReadOnly metadata
+                Metadata = new PropertyContainer(metadata);
+            }
         }
 
         /// <inheritdoc />

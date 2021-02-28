@@ -1,6 +1,7 @@
-# 2.0.0-rc.4
+# 2.0.0-rc.5
 - MicroElements.Metadata updated to 7.0.0
 - MicroElements.Data updated to 2.0.0
+- SessionBuilder added
 
 # 1.1.0
 - Fixed OperationManager.Start (sometime ProcessOperation can be started before Runtime fully initialized)

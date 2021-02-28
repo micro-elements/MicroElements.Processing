@@ -14,12 +14,33 @@ namespace MicroElements.Processing.TaskManager
         /// <summary>
         /// Gets max level of concurrency.
         /// </summary>
-        int MaxConcurrencyLevel { get; }
+        int? MaxConcurrencyLevel { get; }
 
         /// <summary>
         /// Gets timeout for entire session.
         /// </summary>
-        TimeSpan SessionTimeout { get; }
+        TimeSpan? SessionTimeout { get; }
+
+        /// <summary>
+        /// Gets the session type.
+        /// </summary>
+        SessionType SessionType { get; }
+    }
+
+    /// <summary>
+    /// Session type.
+    /// </summary>
+    public enum SessionType
+    {
+        /// <summary>
+        /// Session is limited with operation collection that should be processed.
+        /// </summary>
+        OperationsBatch,
+
+        /// <summary>
+        /// Session is an endless process that processes income operations.
+        /// </summary>
+        InfiniteProcess,
     }
 
     /// <summary>
@@ -63,10 +84,13 @@ namespace MicroElements.Processing.TaskManager
     public class ExecutionOptions<TSessionState, TOperationState> : IExecutionOptions<TSessionState, TOperationState>
     {
         /// <inheritdoc />
-        public int MaxConcurrencyLevel { get; set; } = Environment.ProcessorCount;
+        public int? MaxConcurrencyLevel { get; set; } = Environment.ProcessorCount;
 
         /// <inheritdoc />
-        public TimeSpan SessionTimeout { get; set; } = TimeSpan.FromHours(24);
+        public TimeSpan? SessionTimeout { get; set; } = TimeSpan.FromHours(24);
+
+        /// <inheritdoc />
+        public SessionType SessionType { get; set; } = SessionType.OperationsBatch;
 
         /// <inheritdoc />
         public CancellationToken CancellationToken { get; set; } = CancellationToken.None;

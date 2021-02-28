@@ -112,9 +112,9 @@ namespace MicroElements.Processing.TaskManager
         /// <summary>
         /// Starts all operations (does not waits completion).
         /// </summary>
-        /// <param name="options">Execution options.</param>
+        /// <param name="executionOptions">Execution executionOptions.</param>
         /// <returns>Task.</returns>
-        Task Start(IExecutionOptions<TSessionState, TOperationState> options);
+        Task Start(IExecutionOptions<TSessionState, TOperationState>? executionOptions = null);
 
         /// <summary>
         /// Stops session.
