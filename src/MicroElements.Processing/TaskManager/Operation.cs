@@ -78,7 +78,7 @@ namespace MicroElements.Processing.TaskManager
             {
                 // If state is metadata provider itself then use it as operation metadata.
                 if (state is IMetadataProvider stateMetadataProvider &&
-                    stateMetadataProvider.GetInstanceMetadata(autoCreate: false) is { } stateMetadata)
+                    stateMetadataProvider.GetMetadataContainer(autoCreate: false) is { } stateMetadata)
                     Metadata = stateMetadata.ToReadOnly();
                 else
                     Metadata = PropertyContainer.Empty;
