@@ -21,7 +21,7 @@ namespace MicroElements.Processing.Tests
         [Fact]
         public void property_set_should_be_not_null()
         {
-            SessionMetricsMeta.PropertySet.Should().NotContainNulls();
+            SessionMetricsMeta.PropertySet.GetProperties().Should().NotContainNulls();
             SessionMetricsMeta.GetProperties().Should().NotContainNulls();
         }
     }
