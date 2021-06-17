@@ -1,3 +1,6 @@
+# 2.0.1
+- MicroElements.Metadata updated to 7.4.3
+
 # 2.0.0
 - MicroElements.Metadata updated to 7.0.0
 - MicroElements.Data updated to 2.0.0
