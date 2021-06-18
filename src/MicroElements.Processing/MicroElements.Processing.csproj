@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="MicroElements.Functional" Version="1.10.0" />
-    <PackageReference Include="MicroElements.Data" Version="2.0.0" />
+    <PackageReference Include="MicroElements.Data" Version="2.0.1" />
     <PackageReference Include="MicroElements.Metadata" Version="7.4.3" />
     <PackageReference Include="NodaTime" Version="3.0.0" />
     <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="5.0.0" />
