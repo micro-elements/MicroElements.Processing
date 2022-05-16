@@ -1,25 +1,27 @@
 name: Build and publish
 
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+  workflow_dispatch:
+    inputs:
+      ForceUploadPackages:
+        type: boolean
+        description: "ForceUploadPackages"
+        required: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Setup .NET Core
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 5.0.103
-    - name: Build
-      env:
-        UPLOAD_NUGET: ${{ secrets.UPLOAD_NUGET }}
-        UPLOAD_NUGET_API_KEY: ${{ secrets.UPLOAD_NUGET_API_KEY }}
-      run: |
-        chmod a+x ./build.sh
-        ./build.sh --target=Travis --verbosity=normal --ForceUploadPackages=false
+      - uses: actions/checkout@v2
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 6.0.300
+      - name: Build
+        env:
+          UPLOAD_NUGET: ${{ secrets.UPLOAD_NUGET }}
+          UPLOAD_NUGET_API_KEY: ${{ secrets.UPLOAD_NUGET_API_KEY }}
+        run: |
+          chmod a+x ./build.sh
+          ./build.sh --target=Travis --verbosity=normal --ForceUploadPackages=${{ github.event.inputs.ForceUploadPackages }}

@@ -2,7 +2,7 @@
   <Import Project="version.props" />
   <PropertyGroup>
     <Product>MicroElements.Processing</Product>
-    <Copyright>2020</Copyright>
+    <Copyright>2022</Copyright>
     <Authors>micro-elements</Authors>
     <Description>Provides async processing blocks</Description>
 
