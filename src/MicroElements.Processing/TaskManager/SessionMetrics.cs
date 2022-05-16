@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using MicroElements.Metadata;
+using MicroElements.Metadata.Schema;
 using NodaTime;
 
 namespace MicroElements.Processing.TaskManager

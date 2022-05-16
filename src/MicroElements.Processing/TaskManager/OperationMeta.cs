@@ -3,6 +3,7 @@
 
 using System;
 using MicroElements.Metadata;
+using MicroElements.Metadata.Schema;
 
 namespace MicroElements.Processing.TaskManager
 {
